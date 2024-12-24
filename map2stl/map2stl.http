@@ -1,0 +1,6 @@
+@map2stl_HostAddress = http://localhost:5106
+
+GET {{map2stl_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
