@@ -1,0 +1,14 @@
+/* src/components/SidebarMenu/SidebarMenu.css */
+.sidebar-menu {
+    padding: 1rem;
+    font-family: sans-serif;
+  }
+  .sidebar-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sidebar-menu li {
+    margin: 0.5rem 0;
+  }
+  

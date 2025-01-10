@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
-import MapComponent from './components/MapComponent';
-import ThreeDComponent from './components/ThreeDComponent';
+// src/App.js
+import React from 'react';
+import './App.css';
+import SidebarMenu from './components/SidebarMenu/SidebarMenu';
+import MapWithDraw from './components/MapComponent/MapComponent';
+
 
 function App() {
-  const [selectedArea, setSelectedArea] = useState(null);
-
-  const handleAreaSelect = (bounds) => {
-    setSelectedArea(bounds);
-  };
-
   return (
-    <div className="App">
-      <h1>Map to 3D Model Converter</h1>
-      <MapComponent onAreaSelect={handleAreaSelect} />
-      {selectedArea && <ThreeDComponent areaBounds={selectedArea} />}
+    <div className="app-container">
+      <div className="sidebar">
+        <SidebarMenu />
+      </div>
+      <div className="main-content">
+        <h1>My First React App</h1>
+        <MapWithDraw />
+      </div>
     </div>
   );
 }
 
 export default App;
-
-

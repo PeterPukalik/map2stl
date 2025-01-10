@@ -1,4 +1,4 @@
-body {
+/* body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -10,4 +10,15 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+} */
+/* index.css or App.css */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* If you want the page to fill the entire viewport: */
+  width: 100%;
+  /* Optionally, set a default font or background: */
+  font-family: sans-serif;
+  background: #f8f8f8;
 }

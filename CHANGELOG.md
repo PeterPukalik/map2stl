@@ -9,5 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+[1.10.2025] Added react-leaflet-draw leaflet-draw, create simple frontend gui for future tests, updated readme and created changelog
 ### Changed
 ### Fixed
