@@ -18,7 +18,7 @@ CLI Tool: Use the NPM package for quick generation via the command line.
 Cross-platform: Works on Windows, macOS, and Linux.
 
 ## Tech Stack
-Backend/API: .NET 6 (or higher)
+Backend/API: .NET 9
 
 Frontend: web-based npm front-end
 
@@ -53,3 +53,12 @@ cd map2stl/map2stl/
 
 cd ../../fe
 	npm start
+
+## nugget dependencies
+
+-dotnet add package DEM.Net,DEM.Net.gltf,entitycore
+
+## migration of db in powershell switch to backend folder and then
+	1. dotnet ef migrations add InitialCreate -> create migration
+	2. dotnet ef database update -> apply migration
+
