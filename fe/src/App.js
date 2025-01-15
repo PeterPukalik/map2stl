@@ -27,6 +27,8 @@ import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import { AuthProvider } from "./contexts/AuthContext";
 import MapWithDraw from './components/MapComponent/MapComponent';
+import Admin from "./components/Admin/Admin";
+// import AdminRoute from "./components/Admin/AdminRoute"; 
 import './App.css';
 
 function App() {
@@ -42,6 +44,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/admin" element={<Admin />} />
             </Routes>
             <MapWithDraw />
           </div>

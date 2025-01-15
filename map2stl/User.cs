@@ -24,5 +24,7 @@ namespace map2stl
         [Required]
         public UserRole Role { get; set; } = UserRole.User;
 
+        public List<MapModel> Models { get; set; } = new List<MapModel>();
+
     }
 }

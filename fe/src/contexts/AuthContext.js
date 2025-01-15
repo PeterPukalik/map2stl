@@ -1,33 +1,54 @@
 import React, { createContext, useState, useEffect } from "react";
+import jwtDecode from "jwt-decode"; 
+
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-
-  // Check if the user is already logged in on load
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decodedToken = JSON.parse(atob(token.split(".")[1]));
-      setUser({ username: decodedToken.sub }); // Assuming JWT "sub" contains the username
-    }
-  }, []);
-
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    const decodedToken = JSON.parse(atob(token.split(".")[1]));
-    setUser({ username: decodedToken.sub });
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    const [user, setUser] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+  
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const decodedToken = jwtDecode(token);
+  
+          // Check if the token is expired
+          const currentTime = Date.now() / 1000; // Current time in seconds
+          if (decodedToken.exp && decodedToken.exp < currentTime) {
+            console.warn("Token has expired");
+            localStorage.removeItem("token");
+            setUser(null);
+            setIsAdmin(false);
+          } else {
+            setUser(decodedToken);
+            setIsAdmin(decodedToken.role === "Admin");
+          }
+        } catch (err) {
+          console.error("Failed to decode token:", err);
+          setUser(null);
+          setIsAdmin(false);
+        }
+      }
+    }, []);
+  
+    const login = (token) => {
+      localStorage.setItem("token", token);
+      const decodedToken = jwtDecode(token);
+      setUser({ username: decodedToken.sub, role: decodedToken.role });
+      setIsAdmin(decodedToken.role === "Admin");
+    };
+  
+    const logout = () => {
+      localStorage.removeItem("token");
+      setUser(null);
+      setIsAdmin(false);
+    };
+  
+    return (
+      <AuthContext.Provider value={{ user, isAdmin, login, logout }}>
+        {children}
+      </AuthContext.Provider>
+    );
 };

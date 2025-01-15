@@ -43,7 +43,7 @@ namespace map2stl.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("StlModels");
+                    b.ToTable("Models");
                 });
 
             modelBuilder.Entity("map2stl.User", b =>
@@ -78,12 +78,17 @@ namespace map2stl.Migrations
             modelBuilder.Entity("map2stl.MapModel", b =>
                 {
                     b.HasOne("map2stl.User", "Owner")
-                        .WithMany()
+                        .WithMany("Models")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("map2stl.User", b =>
+                {
+                    b.Navigation("Models");
                 });
 #pragma warning restore 612, 618
         }

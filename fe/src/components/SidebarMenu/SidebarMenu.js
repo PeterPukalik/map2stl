@@ -19,11 +19,11 @@
 // export default SidebarMenu;
 import { Link } from "react-router-dom";
 import React, { useContext } from "react";
-import { AuthContext } from "../../contexts/AuthContext";
+import {  AuthContext }  from "../../contexts/AuthContext";
 import './SidebarMenu.css';
 
 const SidebarMenu = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout,isAdmin  } = useContext(AuthContext);
 
   return (
     <div className="sidebar-menu">
@@ -42,7 +42,8 @@ const SidebarMenu = () => {
         </>
       )}
         <ul>
-        <li>Home</li>
+        <li><a href="/home">Home</a></li>
+        {isAdmin && <li><a href="/admin">Admin</a></li>}
         <li>Register</li>
         <li>Sign in</li>
         <li>About</li>

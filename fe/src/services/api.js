@@ -23,9 +23,24 @@ const apiRequest = async (endpoint, method = "GET", body = null, token = null) =
 
 // Auth APIs
 export const registerUser = (userData) => apiRequest("/Auth/register", "POST", userData);
-
 export const loginUser = (credentials) => apiRequest("/Auth/login", "POST", credentials);
+
+// Generate Terrain Model API
+export const generateTerrainGif = (boundingBox) =>
+  apiRequest("/Model/generate", "POST", boundingBox);
 
 // Example of other APIs
 export const fetchProtectedResource = (token) =>
   apiRequest("/some-protected-endpoint", "GET", null, token);
+
+// Fetch all users
+export const fetchAllUsers = (token) =>
+apiRequest("/Admin/users", "GET", null, token);
+
+// Reset a user's password
+export const resetUserPassword = (userId, token) =>
+apiRequest(`/Admin/resetPassword/${userId}`, "POST", null, token);
+
+
+
+

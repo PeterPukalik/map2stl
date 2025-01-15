@@ -9,7 +9,7 @@ namespace map2stl
             public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
             public DbSet<User> Users { get; set; }
-            public DbSet<MapModel> StlModels { get; set; }
+            public DbSet<MapModel> Models { get; set; }
 
     }
    
