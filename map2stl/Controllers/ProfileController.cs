@@ -56,10 +56,11 @@ namespace map2stl.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return NotFound("User not found.");
 
-            user.PasswordHash = HashPassword(request.NewPassword);
+            user.PasswordHash = HashPassword(request.newPassword);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Password updated successfully." });
+            return Ok(new { message = $"Password updated successfully" });
+
         }
 
         private string HashPassword(string password)
@@ -69,9 +70,11 @@ namespace map2stl.Controllers
             return Convert.ToBase64String(bytes);
         }
 
+
+
         public class ResetPasswordRequest
         {
-            public required string NewPassword { get; set; }
+            public required string newPassword { get; set; }
         }
 
     }

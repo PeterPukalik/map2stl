@@ -47,7 +47,8 @@ const fetchProfile = async () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      await resetOwnPassword("/profile/resetPassword", "POST", { newPassword }, token);
+      console.log(newPassword)
+      await resetOwnPassword(newPassword);
       setMessage("Password updated successfully!");
     } catch (error) {
       console.error("Failed to reset password:", error);

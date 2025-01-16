@@ -54,6 +54,7 @@ export const fetchUserProfile = () => {
 // Reset the logged-in user's password
 export const resetOwnPassword = (newPassword) => {
   const token = localStorage.getItem("token");
+  console.log("Sending new password:", newPassword); // Debug log
   return apiRequest("/profile/resetPassword", "POST", { newPassword }, token);
 };
 
