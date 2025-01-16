@@ -22,7 +22,7 @@ namespace map2stl.Controllers
         public async Task<IActionResult> GetUsers()
         {
             var users = await _context.Users
-                .Include(u => u.Models)
+                //.Include(u => u.Models)
                 .ToListAsync();
 
             return Ok(users);
@@ -33,14 +33,14 @@ namespace map2stl.Controllers
         public async Task<IActionResult> ResetPassword(int userId)
         {
             var user = await _context.Users.FindAsync(userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null) return NotFound(new { message = "User not found." });
 
-            // Reset password (generate a default password or allow admin to set one)
-            var defaultPassword = "NewPassword123"; // Replace with your logic
+            var defaultPassword = "NewPassword123"; 
             user.PasswordHash = HashPassword(defaultPassword);
             await _context.SaveChangesAsync();
 
-            return Ok($"Password reset to '{defaultPassword}' for user {user.Username}.");
+            return Ok(new { message = $"Password reset  for user {user.Username}." });
+            //return Ok(new { message = $"Password reset to '{defaultPassword}' for user {user.Username}." });
         }
 
         private string HashPassword(string password)

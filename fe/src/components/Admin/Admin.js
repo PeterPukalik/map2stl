@@ -38,6 +38,7 @@ const Admin = ({ token }) => {
             <th>Username</th>
             <th>Email</th>
             <th>Role</th>
+            <th>Id</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -47,6 +48,7 @@ const Admin = ({ token }) => {
               <td>{user.username}</td>
               <td>{user.email}</td>
               <td>{user.role}</td>
+              <td>{user.id}</td>
               <td>
                 <button onClick={() => handleResetPassword(user.id)}>
                   Reset Password

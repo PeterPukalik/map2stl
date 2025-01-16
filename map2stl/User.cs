@@ -10,16 +10,16 @@ namespace map2stl
 
         [Required]
         [MaxLength(200)]
-        public string Username { get; set; }
+        public required string Username { get; set; }
 
         [Required]
         [MaxLength(200)]
-        public string Email { get; set; }
+        public required string Email { get; set; }
 
         // Store a hashed password
         [Required]
         [MaxLength(500)]
-        public string PasswordHash { get; set; }
+        public required string PasswordHash { get; set; }
 
         [Required]
         public UserRole Role { get; set; } = UserRole.User;

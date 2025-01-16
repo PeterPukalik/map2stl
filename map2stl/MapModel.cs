@@ -10,17 +10,18 @@ namespace map2stl
 
         [Required]
         [MaxLength(200)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         // Byte array to store the model as a BLOB
-        public byte[] Data { get; set; }
+        [Required]
+        public required byte[] Data { get; set; }
 
         [MaxLength(200)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         // link this STL to a specific user  a foreign key:
         public int UserId { get; set; }
         [ForeignKey("UserId")]
-        public User Owner { get; set; }
+        public User? Owner { get; set; }
     }
 }

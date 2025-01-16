@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Text;
 
 namespace map2stl.Controllers
@@ -7,6 +9,14 @@ namespace map2stl.Controllers
     [Route("[controller]")]
     public class ModelController : ControllerBase
     {
+
+        private readonly AppDbContext _context;
+
+        public ModelController(AppDbContext context)
+        {
+            _context = context;
+        }
+
         public class BoundingBoxRequest
         {
             public double SouthLat { get; set; }
@@ -70,6 +80,29 @@ namespace map2stl.Controllers
             Console.WriteLine($"Generating GltF for BoundingBox: " +
                               $"SouthLat={bbox.SouthLat}, WestLng={bbox.WestLng}, NorthLat={bbox.NorthLat}, EastLng={bbox.EastLng}");
             return Encoding.ASCII.GetBytes("test"); // Simulated GIF header
+        }
+
+
+        [HttpGet("userModels")]
+        public IActionResult GetUserModels()
+        {
+            // Retrieve the user's ID from the claims
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id");
+            if (userIdClaim == null)
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
+            // Parse the ID to an integer
+            if (!int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return BadRequest("Invalid User ID.");
+            }
+
+            // Retrieve models linked to the user
+            var models = _context.Models.Where(m => m.UserId == userId).ToList();
+
+            return Ok(models);
         }
 
 
