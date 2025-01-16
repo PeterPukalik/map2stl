@@ -13,7 +13,7 @@ namespace map2stl.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _config; // to read from appsettings
+        private readonly IConfiguration _config; 
 
         public AuthController(AppDbContext context, IConfiguration config)
         {
