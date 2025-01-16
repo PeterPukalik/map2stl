@@ -2,6 +2,7 @@ using map2stl;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,12 +22,17 @@ builder.Services
         options.RequireHttpsMetadata = false; // for dev
         options.SaveToken = true;
         var secretKey = builder.Configuration["JwtSettings:SecretKey"];
+        if(secretKey == null)
+        {
+            throw new Exception("Secret key is missing");
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = false,
             ValidateAudience = false,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))//appsetting.development.json
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),//appsetting.development.json
+            RoleClaimType = ClaimTypes.Role 
 
         };
     });
@@ -40,7 +46,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp",
         policy => policy.WithOrigins("http://localhost:3000") // Your React app URL
                         .AllowAnyMethod()
-                        .AllowAnyHeader());
+                        .AllowAnyHeader()
+                        .AllowCredentials());
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

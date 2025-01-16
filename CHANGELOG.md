@@ -12,4 +12,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.14.2025] Added basic jwt login authentication
 [1.10.2025] Added react-leaflet-draw leaflet-draw, create simple frontend gui for future tests, updated readme and created changelog
 ### Changed
+[1.16.2025] Added role based authentication, profile page
 ### Fixed

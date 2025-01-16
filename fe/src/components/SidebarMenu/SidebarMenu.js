@@ -1,51 +1,30 @@
-// // src/components/SidebarMenu/SidebarMenu.js
-// import React from 'react';
-// import './SidebarMenu.css';
-
-// const SidebarMenu = () => {
-//   return (
-//     <nav className="sidebar-menu">
-//       <h3>Menu</h3>
-//       <ul>
-//         <li>Home</li>
-//         <li>Register</li>
-//         <li>Sign in</li>
-//         <li>About</li>
-//       </ul>
-//     </nav>
-//   );
-// };
-
-// export default SidebarMenu;
-import { Link } from "react-router-dom";
 import React, { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
-import './SidebarMenu.css';
+import { Link } from "react-router-dom";
 
 const SidebarMenu = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, isAdmin, logout } = useContext(AuthContext);
 
   return (
-    <div className="sidebar-menu">
-      <h1>Menu</h1>
-      {user ? (
-        <>
-          <p>Logged in as: {user.username}</p>
-          <button onClick={logout}>Sign Out</button>
-        </>
-      ) : (
-        <>
-          <p>You are not logged in.</p>
-          <Link to="/login">Login</Link>
-          <br></br>
-          <Link to="/register">Register</Link>
-        </>
-      )}
-        <ul>
-        <li>Home</li>
-        <li>Register</li>
-        <li>Sign in</li>
-        <li>About</li>
+    <div>
+      <h3>Menu</h3>
+      <ul>
+        {!user ? (
+          <>
+            <li><Link to="/login">Login</Link></li>
+            <li><Link to="/register">Register</Link></li>
+          </>
+        ) : (
+          <>
+             <li>Logged in as: <button onClick={() => window.location.href = "/profile"}>{user.username}</button></li>
+            <li><button onClick={logout}>Logout</button></li>
+          </>
+        )}
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/about">About</Link></li>
+        {isAdmin && (
+          <li><Link to="/admin">Admin Panel</Link></li>
+        )}
       </ul>
     </div>
   );

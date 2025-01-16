@@ -27,7 +27,7 @@ namespace map2stl.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StlModels",
+                name: "Models",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -39,9 +39,9 @@ namespace map2stl.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StlModels", x => x.Id);
+                    table.PrimaryKey("PK_Models", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StlModels_Users_UserId",
+                        name: "FK_Models_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -49,8 +49,8 @@ namespace map2stl.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_StlModels_UserId",
-                table: "StlModels",
+                name: "IX_Models_UserId",
+                table: "Models",
                 column: "UserId");
         }
 
@@ -58,7 +58,7 @@ namespace map2stl.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "StlModels");
+                name: "Models");
 
             migrationBuilder.DropTable(
                 name: "Users");

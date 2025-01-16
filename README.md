@@ -56,7 +56,11 @@ cd ../../fe
 
 ## nugget dependencies
 
--dotnet add package DEM.Net,DEM.Net.gltf,entitycore
+-dotnet add package DEM.Net,DEM.Net.gltf,entitycore,jwt
+	coming soon identity frameowrk for user management https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-9.0&tabs=visual-studio#create-a-web-app-with-authentication
+
+## npm dep
+	jwt-decode
 
 ## migration of db in powershell switch to backend folder and then
 	1. dotnet ef migrations add InitialCreate -> create migration
