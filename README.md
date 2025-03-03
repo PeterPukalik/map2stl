@@ -58,6 +58,8 @@ cd ../../fe
 
 -dotnet add package DEM.Net,DEM.Net.gltf,entitycore,jwt
 	coming soon identity frameowrk for user management https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-9.0&tabs=visual-studio#create-a-web-app-with-authentication
+	npm install @react-three/fiber@8.17.10 @react-three/drei@9.0.3 three
+
 
 ## npm dep
 	jwt-decode

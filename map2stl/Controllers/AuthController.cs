@@ -74,12 +74,44 @@ namespace map2stl.Controllers
 
         private string HashPassword(string password)
         {
+            //salt
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
             return Convert.ToBase64String(bytes);
         }
+//        using System.Security.Cryptography;
+//using System.Text;
 
-        private string GenerateJwtToken(User user)
+//private string HashPassword(string password)
+//    {
+//        // Generate a random salt
+//        byte[] salt = new byte[16];
+//        using (var rng = RandomNumberGenerator.Create())
+//        {
+//            rng.GetBytes(salt);
+//        }
+
+//        // Combine password with salt
+//        byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+//        byte[] saltedPassword = new byte[salt.Length + passwordBytes.Length];
+
+//        Buffer.BlockCopy(salt, 0, saltedPassword, 0, salt.Length);
+//        Buffer.BlockCopy(passwordBytes, 0, saltedPassword, salt.Length, passwordBytes.Length);
+
+//        // Hash the salted password
+//        using var sha256 = SHA256.Create();
+//        byte[] hashBytes = sha256.ComputeHash(saltedPassword);
+
+//        // Combine salt + hash and return as Base64 string
+//        byte[] saltAndHash = new byte[salt.Length + hashBytes.Length];
+//        Buffer.BlockCopy(salt, 0, saltAndHash, 0, salt.Length);
+//        Buffer.BlockCopy(hashBytes, 0, saltAndHash, salt.Length, hashBytes.Length);
+
+//        return Convert.ToBase64String(saltAndHash);
+//    }
+
+
+    private string GenerateJwtToken(User user)
         {
             var secretKey = _config["JwtSettings:SecretKey"]; // Read from appsettings
             if(secretKey == null)
@@ -95,7 +127,8 @@ namespace map2stl.Controllers
                 new Claim("username", user.Username),
                 new Claim("role", user.Role.ToString()),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("id",user.Id.ToString())
+                new Claim("id",user.Id.ToString()),
+                new Claim("sub",user.Id.ToString())
 
             };
 

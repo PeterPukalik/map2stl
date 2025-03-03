@@ -46,7 +46,7 @@ const fetchProfile = async () => {
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
+      // const token = localStorage.getItem("token");
       console.log(newPassword)
       await resetOwnPassword(newPassword);
       setMessage("Password updated successfully!");

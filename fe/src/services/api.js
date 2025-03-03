@@ -65,4 +65,11 @@ export const fetchUserModels = () => {
 };
 
 
+// load model
+export const generateTerrainModel = async (bounds) => {
+  const token = localStorage.getItem("token") || "";
+  const response = await apiRequest("/Model/generateGltf", "POST", bounds, token);
+  
+  return `${BASE_URL}${response.fileUrl}`; 
+};
 

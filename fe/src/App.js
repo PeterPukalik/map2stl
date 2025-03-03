@@ -4,10 +4,11 @@ import SidebarMenu from "./components/SidebarMenu/SidebarMenu";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import { AuthProvider } from "./contexts/AuthContext";
-import MapWithDraw from './components/MapComponent/MapComponent';
+import MapWithDraw from './components/MapComponents/MapComponent';
 import Admin from "./components/Admin/Admin";
 import './App.css';
 import Profile from "./components/Profile/Profile";
+import ModelDebugPage from "./pages/ModelDebugPage"; 
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/profile" element={<Profile />} /> 
+              <Route path="/debug-model" element={<ModelDebugPage />} />
             </Routes>
           </div>
         </div>
