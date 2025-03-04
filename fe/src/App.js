@@ -9,6 +9,7 @@ import Admin from "./components/Admin/Admin";
 import './App.css';
 import Profile from "./components/Profile/Profile";
 import ModelDebugPage from "./pages/ModelDebugPage"; 
+import HomePage from './pages/HomePage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <h1>Map2stl</h1>
             <Routes>
               <Route path="/" element={<MapWithDraw />} />
+              <Route path="/map" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/admin" element={<Admin />} />
