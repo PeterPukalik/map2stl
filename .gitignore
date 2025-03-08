@@ -5,6 +5,7 @@
 
 ##
 map2stl/models/
+map2stl/appsettings.json
 
 # User-specific files
 *.rsuser
