@@ -28,19 +28,36 @@ function MapWithDraw() {
     }
   };
 
-  // API Call to Generate Model
-  const sendToBackend = async () => {
-    if (!bounds) return;
-    setLoading(true);
-    try {
-      const modelUrl = await generateTerrainModel(bounds);
-      setModelUrl(modelUrl);
-      alert("3D Model successfully generated!");
-    } catch (err) {
-      alert(`Error generating model: ${err.message}`);
+// API Call to Generate Model
+const sendToBackend = async () => {
+  if (!bounds) return;
+  setLoading(true);
+
+  try {
+    const response = await generateTerrainModel(bounds);
+
+    console.log("API Response:", response); // Debugging
+
+    // If response is a string, use it directly
+    if (typeof response === "string") {
+      setModelUrl(response); // API is returning a full URL, so no need to append anything
+    } 
+    // If response is an object, use fileUrl
+    else if (response && response.fileUrl) {
+      const fullUrl = `https://localhost:7188${response.fileUrl}`;
+      setModelUrl(fullUrl);
+    } 
+    // If neither, log an error
+    else {
+      console.error("Unexpected API response format:", response);
     }
-    setLoading(false);
-  };
+  } catch (err) {
+    console.error("Error fetching model URL:", err);
+  }
+
+  setLoading(false);
+};
+
 
   return (
     <div className="wrapper">
@@ -74,12 +91,6 @@ function MapWithDraw() {
         <button onClick={sendToBackend} disabled={!bounds || loading}>
           {loading ? "Generating..." : "Generate 3D Model"}
         </button>
-        {bounds && (
-          <p>
-            Southwest: ({bounds.SouthLat.toFixed(4)}, {bounds.WestLng.toFixed(4)})<br />
-            Northeast: ({bounds.NorthLat.toFixed(4)}, {bounds.EastLng.toFixed(4)})
-          </p>
-        )}
       </div>
 
       {/* 3D MODEL BOX */}
@@ -95,3 +106,13 @@ function MapWithDraw() {
 }
 
 export default MapWithDraw;
+
+
+//mena modelov
+//email
+//db modelov, use case, class diagram
+//zdielanie modelov -cez odkaz
+//popisat kniznice, frameworky, preco oracle
+//zaver = zhodnotenie, co zlepsit
+//systemova,programatorska,uzivatelska
+//kazdu stredu o 7

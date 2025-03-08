@@ -8,12 +8,14 @@ const Model = ({ modelUrl, setCameraPosition }) => {
   const [model, setModel] = useState(null);
 
   useEffect(() => {
+    if (!modelUrl) return;
+
     const loader = new GLTFLoader();
     loader.load(
       modelUrl,
       (gltf) => {
         const scene = gltf.scene;
-        console.log("Loaded model:", scene); // Debugging
+        console.log("Loaded model:", scene);
         setModel(scene);
 
         // Compute bounding box
@@ -46,8 +48,7 @@ const Model = ({ modelUrl, setCameraPosition }) => {
   return model ? <primitive object={model} /> : null;
 };
 
-const ModelViewver = () => {
-  const modelUrl = "https://localhost:7188/models/2025-03-03/session_15b47ff0_3bdf89d1.glb";
+const ModelViewver = ({ modelUrl }) => {
   const controlsRef = useRef();
   const [cameraPosition, setCameraPosition] = useState([0, 5, 15]);
 
@@ -58,12 +59,15 @@ const ModelViewver = () => {
         <ambientLight intensity={1} />
         <directionalLight position={[10, 20, 10]} intensity={1.5} />
 
-        {/* Debug Helpers */}
-        {/* <axesHelper args={[5]} />
-        <gridHelper args={[10, 10]} /> */}
-
-        {/* Load the model */}
-        <Model modelUrl={modelUrl} setCameraPosition={setCameraPosition} />
+        {/* Load the model dynamically */}
+        {modelUrl ? (
+          <Model modelUrl={modelUrl} setCameraPosition={setCameraPosition} />
+        ) : (
+          <mesh>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="gray" />
+          </mesh>
+        )}
 
         {/* Orbit Controls for rotation and zooming */}
         <OrbitControls
