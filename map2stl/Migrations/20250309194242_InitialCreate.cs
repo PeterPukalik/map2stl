@@ -5,7 +5,7 @@
 namespace map2stl.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -14,12 +14,12 @@ namespace map2stl.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Username = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    Role = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                        .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
+                    Username = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    Email = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: false),
+                    Role = table.Column<int>(type: "NUMBER(10)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -30,12 +30,12 @@ namespace map2stl.Migrations
                 name: "Models",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Data = table.Column<byte[]>(type: "BLOB", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    UserId = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                        .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
+                    Name = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    Data = table.Column<byte[]>(type: "RAW(2000)", nullable: false),
+                    Description = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: true),
+                    UserId = table.Column<int>(type: "NUMBER(10)", nullable: false)
                 },
                 constraints: table =>
                 {

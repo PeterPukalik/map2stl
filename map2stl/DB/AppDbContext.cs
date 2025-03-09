@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace map2stl
+namespace map2stl.DB
 {
 
     public class AppDbContext : DbContext

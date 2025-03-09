@@ -1,4 +1,4 @@
-using map2stl;
+using map2stl.DB;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -13,7 +13,7 @@ builder.Services.AddControllers();
 
 //entity framework
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
 builder.Services

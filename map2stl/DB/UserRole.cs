@@ -1,4 +1,4 @@
-﻿namespace map2stl
+﻿namespace map2stl.DB
 {
     public enum UserRole
     {
