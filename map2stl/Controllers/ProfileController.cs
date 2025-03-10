@@ -7,21 +7,19 @@ using System.Text;
 
 namespace map2stl.Controllers
 {
-    public class ProfileController : Controller
+    [Authorize]
+    [ApiController]
+    [Route("[controller]")]
+    public class ProfileController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public IActionResult Index()
-        {
-            return View();
-        }
 
         public ProfileController(AppDbContext context)
         {
             _context = context;
         }
 
-        [Authorize]
-        [HttpGet("profile")]
+        [HttpGet("getProfile")]
         public async Task<IActionResult> GetProfile()
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id");
@@ -29,23 +27,22 @@ namespace map2stl.Controllers
                 return Unauthorized();
 
             var userId = int.Parse(userIdClaim.Value);
-
-            var user = await _context.Users
-                //.Include(u => u.Models) // Include models related to the user
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null) return NotFound("User not found.");
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return NotFound("User not found.");
 
             return Ok(new
             {
                 user.Username,
                 user.Email
-                // Models = user.Models.Select(m => new { m.Id, m.Name, m.Description })
             });
         }
 
-        [Authorize]
-        [HttpPost("profile/resetPassword")]
+        /// <summary>
+        /// Logged-in user resets their password.
+        /// This endpoint uses the same salted hash mechanism as registration.
+        /// </summary>
+        [HttpPost("resetPassword")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id");
@@ -53,30 +50,45 @@ namespace map2stl.Controllers
                 return Unauthorized();
 
             var userId = int.Parse(userIdClaim.Value);
-
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null)
+                return NotFound("User not found.");
 
+            // Update the password using the salted hash method.
             user.PasswordHash = HashPassword(request.NewPassword);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"Password updated successfully" });
-
+            return Ok(new { message = "Password updated successfully." });
         }
 
+        /// <summary>
+        /// Same salted hash method as in AuthController.
+        /// </summary>
         private string HashPassword(string password)
         {
+            byte[] salt = new byte[16];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+            byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+            byte[] saltedPassword = new byte[salt.Length + passwordBytes.Length];
+            Buffer.BlockCopy(salt, 0, saltedPassword, 0, salt.Length);
+            Buffer.BlockCopy(passwordBytes, 0, saltedPassword, salt.Length, passwordBytes.Length);
+
             using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
+            byte[] hashBytes = sha256.ComputeHash(saltedPassword);
+
+            byte[] saltAndHash = new byte[salt.Length + hashBytes.Length];
+            Buffer.BlockCopy(salt, 0, saltAndHash, 0, salt.Length);
+            Buffer.BlockCopy(hashBytes, 0, saltAndHash, salt.Length, hashBytes.Length);
+
+            return Convert.ToBase64String(saltAndHash);
         }
-
-
 
         public class ResetPasswordRequest
         {
             public required string NewPassword { get; set; }
         }
-
     }
 }

@@ -1,5 +1,6 @@
 const BASE_URL = "https://localhost:7188"; 
 
+
 // Generic helper function for API requests
 const apiRequest = async (endpoint, method = "GET", body = null, token = null) => {
   const headers = { "Content-Type": "application/json" };
@@ -24,6 +25,7 @@ const apiRequest = async (endpoint, method = "GET", body = null, token = null) =
 // Auth APIs
 export const registerUser = (userData) => apiRequest("/Auth/register", "POST", userData);
 export const loginUser = (credentials) => apiRequest("/Auth/login", "POST", credentials);
+export const forgotPassword = (email) => apiRequest("/Auth/forgotPassword", "POST", email);
 
 // Generate Terrain Model API
 export const generateTerrainGif = (boundingBox) =>
@@ -43,12 +45,12 @@ export const fetchAllUsers = async () => {
 // Reset a user's password
 export const resetUserPassword = (userId) => {
   const token = localStorage.getItem("token"); 
-  return apiRequest(`/Admin/resetPassword/${userId}`, "POST", null, token); 
+  return apiRequest(`/Auth/resetPassword/${userId}`, "POST", null, token); 
 };
 // Fetch the logged-in user's profile information
 export const fetchUserProfile = () => {
   const token = localStorage.getItem("token");
-  return apiRequest("/profile", "GET", null, token);
+  return apiRequest("/profile/getProfile", "GET", null, token);
 };
 
 // Reset the logged-in user's password
@@ -63,7 +65,10 @@ export const fetchUserModels = () => {
   const token = localStorage.getItem("token");
   return apiRequest("/Model/userModels", "GET", null, token);
 };
-
+//reset password with token form
+export async function resetPasswordWithToken(token, newPassword) {
+  return await apiRequest("/auth/resetPasswordWithToken", "POST", { token, newPassword });
+}
 
 // load model
 export const generateTerrainModel = async (bounds) => {

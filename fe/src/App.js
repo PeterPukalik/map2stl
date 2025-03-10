@@ -10,6 +10,9 @@ import './App.css';
 import Profile from "./components/Profile/Profile";
 import ModelDebugPage from "./pages/ModelDebugPage"; 
 import HomePage from './pages/HomePage';
+import ResetPasswordForm from "./components/Auth/ResetPasswordForm";
+import ForgotPassword from "./components/Auth/ForgotPassword";
+
 
 function App() {
   return (
@@ -26,6 +29,8 @@ function App() {
               <Route path="/map" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgotpassword" element={< ForgotPassword/>} />
+              <Route path="/resetpassword" element={< ResetPasswordForm/>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/profile" element={<Profile />} /> 
               <Route path="/debug-model" element={<ModelDebugPage />} />
