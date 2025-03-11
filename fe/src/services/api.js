@@ -78,3 +78,55 @@ export const generateTerrainModel = async (bounds) => {
   return `${BASE_URL}${response.fileUrl}`; 
 };
 
+// export async function fetchUserModels() {
+//   const token = localStorage.getItem("token");
+//   const response = await fetch(`${BASE_URL}/userModels`, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+//   if (!response.ok) {
+//     const errorData = await response.json();
+//     throw new Error(errorData.message || "Failed to fetch models");
+//   }
+//   return response.json();
+// }
+
+export async function downloadModel(modelId, format) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${BASE_URL}/Model/downloadModel/${modelId}?format=${format}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to download model");
+  }
+
+  // Parse the response as a blob, not JSON
+  return response.blob();
+}
+
+
+export async function shareModel(modelId) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${BASE_URL}/Model/shareModel/${modelId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to generate share link");
+  }
+  // The server returns a file stream, so parse it as a Blob
+  const blob = await response.blob();
+  return blob;
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { fetchUserProfile,resetOwnPassword,fetchUserModels } from "../../services/api.js";
 import { AuthContext } from "../../contexts/AuthContext";
+import UserModelList from "./UserModelList";
 
 const Profile = () => {
   const { user, logout,setUser } = useContext(AuthContext); // Access the user and logout function from the context
@@ -82,11 +83,7 @@ const fetchProfile = async () => {
       <h3>Your Models</h3>
       {models.length > 0 ? (
         <ul>
-          {models.map((model) => (
-            <li key={model.id}>
-              <strong>{model.name}</strong>: {model.description}
-            </li>
-          ))}
+          <UserModelList />
         </ul>
       ) : (
         <p>No models found.</p>

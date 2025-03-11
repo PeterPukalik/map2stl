@@ -12,14 +12,19 @@ namespace map2stl.DB
         [MaxLength(200)]
         public required string Name { get; set; }
 
-        // Byte array to store the model as a BLOB
+        // Master GLB file for viewing
         [Required]
-        public required byte[] Data { get; set; }
+        [Column(TypeName = "BLOB")]
+        public required byte[] GLBData { get; set; }
+
+        // Optional STL file for download (after conversion)
+        [Column(TypeName = "BLOB")]
+        public byte[]? STLData { get; set; }
 
         [MaxLength(200)]
         public string? Description { get; set; }
 
-        // link this STL to a specific user  a foreign key:
+        // Link this model to a specific user (foreign key)
         public int UserId { get; set; }
         [ForeignKey("UserId")]
         public User? Owner { get; set; }
