@@ -12,6 +12,7 @@ import ModelDebugPage from "./pages/ModelDebugPage";
 import HomePage from './pages/HomePage';
 import ResetPasswordForm from "./components/Auth/ResetPasswordForm";
 import ForgotPassword from "./components/Auth/ForgotPassword";
+import LayerPage from "./pages/LayerPage";
 
 
 function App() {
@@ -33,7 +34,9 @@ function App() {
               <Route path="/resetpassword" element={< ResetPasswordForm/>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/profile" element={<Profile />} /> 
-              <Route path="/debug-model" element={<ModelDebugPage />} />
+              <Route path="/debug-model" element={<ModelDebugPage />} />              
+              <Route path="/layer" element={<LayerPage />} />              
+
             </Routes>
           </div>
         </div>

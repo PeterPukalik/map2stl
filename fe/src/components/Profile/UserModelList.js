@@ -44,17 +44,25 @@ const UserModelList = () => {
   // Action: Download the model (STL)
   const handleDownload = async (modelId) => {
     try {
-      // Call downloadModel with format "stl" for download.
-      const result = await downloadModel(modelId, "stl");
-      setDownloadUrl(result.fileUrl);
-      // Trigger download: you can either set window.location.href
-      // or open the link in a new tab.
-      window.open(result.fileUrl, "_blank");
+      // Call downloadModel with format "glb" for download.
+      const blob = await downloadModel(modelId, "glb");
+      // Create an object URL from the Blob.
+      const url = URL.createObjectURL(blob);
+      // Create a temporary <a> element and set its download attribute.
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `model_${modelId}.glb`;
+      document.body.appendChild(a);
+      a.click();
+      // Clean up by removing the anchor and revoking the object URL.
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
       setError(`Error downloading model ${modelId}`);
     }
   };
+  
 
   // Action: Generate a shareable link for the model
   const handleShare = async (modelId) => {

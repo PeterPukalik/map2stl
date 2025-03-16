@@ -116,3 +116,8 @@ export default MapWithDraw;
 //zaver = zhodnotenie, co zlepsit
 //systemova,programatorska,uzivatelska
 //kazdu stredu o 7
+
+
+
+
+//verzoniovanie modelov, editovanie
