@@ -23,7 +23,7 @@ namespace map2stl.Tests
             // Act
             //ModelProcessor.ProcessModels(osmFilePath, demFilePath, outputStlPath);
             //ModelProcessor.ProcessModels(osmFilePath, demFilePath, outputStlPath, outputglbPath);
-            ModelProcessor.ProcessModels(osmFilePath,demFilePath, outputStlPath);
+            ModelProcessor.ProcessModels(demFilePath, osmFilePath, outputStlPath);
 
             // Assert
             // Verify that the STL file was created

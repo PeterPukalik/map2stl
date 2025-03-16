@@ -73,53 +73,68 @@ namespace map2stl.ModelTweaks
                 RotateMesh(mergedData, -MathF.PI / 2, Vector3.UnitX);
                 ExportToStl(mergedData, outputStlPath);
             }
-
         //private static void AdjustBuildingVertices(Vector3[] buildingVertices, Vector3[] terrainVertices, int[] terrainIndices)
         //{
+        //    if (buildingVertices.Length == 0) return;
+
+        //    float lowestBuildingY = buildingVertices.Min(v => v.Y);
+        //    float highestTerrainY = float.MinValue;
+
         //    for (int i = 0; i < buildingVertices.Length; i++)
         //    {
-        //        var vertex = buildingVertices[i];
-        //        float terrainY = FindTerrainHeight(vertex.X, vertex.Z, terrainVertices, terrainIndices);
-        //        buildingVertices[i] = new Vector3(vertex.X, terrainY + 0.05f, vertex.Z); // Small offset
+        //        float terrainY = FindTerrainHeight(buildingVertices[i].X, buildingVertices[i].Z, terrainVertices, terrainIndices);
+        //        if (terrainY > highestTerrainY)
+        //        {
+        //            highestTerrainY = terrainY;
+        //        }
+        //    }
+
+        //    float deltaY = highestTerrainY - lowestBuildingY;
+
+        //    for (int i = 0; i < buildingVertices.Length; i++)
+        //    {
+        //        buildingVertices[i] = new Vector3(buildingVertices[i].X, buildingVertices[i].Y + deltaY, buildingVertices[i].Z);
         //    }
         //}
-        private static float FindSmoothedTerrainHeight(float x, float z, Vector3[] terrainVertices, int[] terrainIndices, float smoothingRadius = 1.0f)
-        {
-            float totalHeight = 0;
-            int count = 0;
-
-            for (int i = 0; i < terrainVertices.Length; i++)
-            {
-                float dx = terrainVertices[i].X - x;
-                float dz = terrainVertices[i].Z - z;
-                float distanceSquared = dx * dx + dz * dz;
-
-                if (distanceSquared <= smoothingRadius * smoothingRadius)
-                {
-                    totalHeight += FindTerrainHeight(terrainVertices[i].X, terrainVertices[i].Z, terrainVertices, terrainIndices);
-                    count++;
-                }
-            }
-
-            if (count > 0)
-            {
-                return totalHeight / count;
-            }
-            else
-            {
-                return FindTerrainHeight(x, z, terrainVertices, terrainIndices); // Fallback to original height
-            }
-        }
 
         private static void AdjustBuildingVertices(Vector3[] buildingVertices, Vector3[] terrainVertices, int[] terrainIndices)
         {
+            if (buildingVertices.Length == 0) return;
+
+            // 1. Find the lowest point of the building
+            float lowestBuildingY = buildingVertices.Min(v => v.Y);
+
+            // 2. Raycast and adjust
             for (int i = 0; i < buildingVertices.Length; i++)
             {
                 var vertex = buildingVertices[i];
-                float terrainY = FindSmoothedTerrainHeight(vertex.X, vertex.Z, terrainVertices, terrainIndices);
-                buildingVertices[i] = new Vector3(vertex.X, terrainY + 0.05f, vertex.Z); // Small offset
+                float terrainY = FindTerrainHeight(vertex.X, vertex.Z, terrainVertices, terrainIndices);
+
+                // 3. Calculate delta
+                float deltaY = vertex.Y - lowestBuildingY;
+
+                // 4. Adjust vertex height
+                buildingVertices[i] = new Vector3(vertex.X, terrainY + deltaY, vertex.Z);
             }
         }
+
+        private static Vector3 CalculateBuildingCenter(Vector3[] buildingVertices)
+        {
+            if (buildingVertices.Length == 0) return Vector3.Zero;
+
+            Vector3 min = new Vector3(float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue);
+
+            foreach (var vertex in buildingVertices)
+            {
+                min = Vector3.Min(min, vertex);
+                max = Vector3.Max(max, vertex);
+            }
+
+            return (min + max) / 2;
+        }
+
+
         private static float FindTerrainHeight(float x, float z, Vector3[] terrainVertices, int[] terrainIndices)
             {
                 Vector3 rayOrigin = new Vector3(x, 1000, z);
@@ -336,5 +351,15 @@ namespace map2stl.ModelTweaks
                 edges[edgeKey] = 1;
             }
         }
+
+
+
+
+
+
+
+
     }
+
+
 }
