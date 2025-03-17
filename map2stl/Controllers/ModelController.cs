@@ -34,6 +34,9 @@ namespace map2stl.Controllers
             public double WestLng { get; set; }
             public double NorthLat { get; set; }
             public double EastLng { get; set; }
+            public double zFactor { get; set; }
+
+            public double meshReduceFactor { get; set; }
         }
 
         // POST: generateStl

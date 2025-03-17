@@ -33,46 +33,59 @@ namespace map2stl.ModelTweaks
         /// <param name="terrainGlbPath">Path to the terrain (DEM) GLB file.</param>
         /// <param name="buildingsGlbPath">Path to the OSM buildings GLB file.</param>
         /// <param name="outputStlPath">Output path for the merged STL file.</param>
-            public static void ProcessModels(string terrainGlbPath, string buildingsGlbPath, string outputStlPath)
+        public static void ProcessModels(string terrainGlbPath, string buildingsGlbPath, string outputStlPath)
+        {
+            var terrainModel = ModelRoot.Load(terrainGlbPath);
+            var buildingsModel = ModelRoot.Load(buildingsGlbPath);
+
+
+            // 2. Compute DEM bounding box and extract DEM triangles
+            var demBox = ComputeModelBoundingBox(terrainModel);
+            var demTriangles = ExtractDemTriangles(terrainModel);
+
+            var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
+            var buildingsMeshes = buildingsModel.LogicalMeshes[0].Primitives[0];
+
+            var terrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+            var terrainIndices = terrainMesh.GetTriangleIndices().SelectMany(t => new[] { t.A, t.B, t.C }).ToArray();
+
+            var mergedData = new MeshData();
+            mergedData.Vertices.AddRange(terrainVertices);
+            mergedData.Indices.AddRange(terrainIndices);
+
+            // Process only the *first* mesh in the buildings model.  Crucial change.
+            if (buildingsModel.LogicalMeshes.Count > 0) // Check if there are ANY meshes
             {
-                var terrainModel = ModelRoot.Load(terrainGlbPath);
-                var buildingsModel = ModelRoot.Load(buildingsGlbPath);
+                var buildingMesh = buildingsModel.LogicalMeshes[0]; // Take only the FIRST mesh
 
-                var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
-                var buildingsMeshes = buildingsModel.LogicalMeshes;
-
-                var terrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
-                var terrainIndices = terrainMesh.GetTriangleIndices().SelectMany(t => new[] { t.A, t.B, t.C }).ToArray();
-
-                var mergedData = new MeshData();
-                mergedData.Vertices.AddRange(terrainVertices);
-                mergedData.Indices.AddRange(terrainIndices);
-
-                foreach (var buildingMesh in buildingsMeshes)
+                // Iterate through the primitives of the FIRST building mesh.
+                foreach (var primitive in buildingMesh.Primitives)
                 {
-                    foreach (var primitive in buildingMesh.Primitives)
+                    var buildingVertices = primitive.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+                    var buildingIndices = primitive.GetTriangleIndices().SelectMany(t => new[] { t.A, t.B, t.C }).ToArray(); // Get indices as int[]
+
+
+                    // Adjust building vertices based on the terrain.
+                    AdjustBuildingVertices(buildingVertices, terrainVertices, terrainIndices);
+
+
+                    // Add the adjusted building vertices and indices to the merged data.
+                    int vertexOffset = mergedData.Vertices.Count;
+                    mergedData.Vertices.AddRange(buildingVertices);
+                    foreach (var index in buildingIndices)  // Use the int[] indices directly
                     {
-                        var buildingVertices = primitive.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
-                        var buildingIndices = primitive.GetTriangleIndices();
-
-                        AdjustBuildingVertices(buildingVertices, terrainVertices, terrainIndices);
-
-                        int vertexOffset = mergedData.Vertices.Count;
-                        mergedData.Vertices.AddRange(buildingVertices);
-                        foreach (var indexTuple in buildingIndices)
-                        {
-                            mergedData.Indices.Add(indexTuple.A + vertexOffset);
-                            mergedData.Indices.Add(indexTuple.B + vertexOffset);
-                            mergedData.Indices.Add(indexTuple.C + vertexOffset);
-                        }
+                        mergedData.Indices.Add(index + vertexOffset);
                     }
                 }
-
-                //AddBasePlane(mergedData);
-                //AddPrintableSides(mergedData);
-                RotateMesh(mergedData, -MathF.PI / 2, Vector3.UnitX);
-                ExportToStl(mergedData, outputStlPath);
             }
+
+
+            RotateMesh(mergedData, -MathF.PI / 2, Vector3.UnitX);
+            RotateMesh(mergedData, MathF.PI, Vector3.UnitX); // 180 degrees (PI radians) around X
+            //AddBasePlate(mergedData, terrainModel);
+            //AddPrintableSides(mergedData);
+            ExportToStl(mergedData, outputStlPath);
+        }
         //private static void AdjustBuildingVertices(Vector3[] buildingVertices, Vector3[] terrainVertices, int[] terrainIndices)
         //{
         //    if (buildingVertices.Length == 0) return;
@@ -136,34 +149,34 @@ namespace map2stl.ModelTweaks
 
 
         private static float FindTerrainHeight(float x, float z, Vector3[] terrainVertices, int[] terrainIndices)
+        {
+            Vector3 rayOrigin = new Vector3(x, 1000, z);
+            Vector3 rayDirection = new Vector3(0, -1, 0);
+            Vector3? closestIntersection = null;
+            float closestDistance = float.MaxValue;
+
+            for (int i = 0; i < terrainIndices.Length; i += 3)
             {
-                Vector3 rayOrigin = new Vector3(x, 1000, z);
-                Vector3 rayDirection = new Vector3(0, -1, 0);
-                Vector3? closestIntersection = null;
-                float closestDistance = float.MaxValue;
+                Vector3 v0 = terrainVertices[terrainIndices[i]];
+                Vector3 v1 = terrainVertices[terrainIndices[i + 1]];
+                Vector3 v2 = terrainVertices[terrainIndices[i + 2]];
 
-                for (int i = 0; i < terrainIndices.Length; i += 3)
+                Vector3? intersection = RayTriangleIntersection(rayOrigin, rayDirection, v0, v1, v2);
+
+                if (intersection.HasValue)
                 {
-                    Vector3 v0 = terrainVertices[terrainIndices[i]];
-                    Vector3 v1 = terrainVertices[terrainIndices[i + 1]];
-                    Vector3 v2 = terrainVertices[terrainIndices[i + 2]];
-
-                    Vector3? intersection = RayTriangleIntersection(rayOrigin, rayDirection, v0, v1, v2);
-
-                    if (intersection.HasValue)
+                    float distance = (rayOrigin - intersection.Value).Length();
+                    if (distance < closestDistance)
                     {
-                        float distance = (rayOrigin - intersection.Value).Length();
-                        if (distance < closestDistance)
-                        {
-                            closestDistance = distance;
-                            closestIntersection = intersection;
-                        }
+                        closestDistance = distance;
+                        closestIntersection = intersection;
                     }
                 }
-
-                return closestIntersection?.Y ?? 0;
             }
-            private static Vector3? RayTriangleIntersection(Vector3 rayOrigin, Vector3 rayDirection, Vector3 v0, Vector3 v1, Vector3 v2)
+
+            return closestIntersection?.Y ?? 0;
+        }
+        private static Vector3? RayTriangleIntersection(Vector3 rayOrigin, Vector3 rayDirection, Vector3 v0, Vector3 v1, Vector3 v2)
         {
             float epsilon = 0.000001f;
             Vector3 edge1 = v1 - v0;
@@ -245,28 +258,66 @@ namespace map2stl.ModelTweaks
                 writer.WriteLine("endsolid MergedModel");
             }
         }
-
-        private static void AddBasePlane(MeshData meshData)
+        private static void AddBasePlate(MeshData meshData, ModelRoot terrainModel, float heightFraction = 0.25f)
         {
-            if (meshData.Vertices.Count == 0) return;
+            if (meshData.Vertices.Count == 0 || terrainModel == null) return;
 
-            float minY = meshData.Vertices.Min(v => v.Y); // Find lowest Y of *all* vertices
-            var bounds = CalculateBounds(meshData.Vertices.ToArray());
+            // 1. Find min/max Y of the *entire* mesh.
+            float minY = meshData.Vertices.Min(v => v.Y);
+            float maxY = meshData.Vertices.Max(v => v.Y);
+            float totalHeight = maxY - minY;
+            float basePlaneY = minY - (totalHeight * heightFraction);
 
-            Vector3 v0 = new Vector3(bounds.Min.X, minY, bounds.Min.Z);
-            Vector3 v1 = new Vector3(bounds.Max.X, minY, bounds.Min.Z);
-            Vector3 v2 = new Vector3(bounds.Max.X, minY, bounds.Max.Z);
-            Vector3 v3 = new Vector3(bounds.Min.X, minY, bounds.Max.Z);
+            // 2. Calculate bounds using the *TERRAIN* model.
+            var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
+            var terrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+            var bounds = CalculateBounds(terrainVertices);
 
+            // 3. Create base plane vertices (unrotated).
+            Vector3 v0 = new Vector3(bounds.Min.X, basePlaneY, bounds.Min.Z);
+            Vector3 v1 = new Vector3(bounds.Max.X, basePlaneY, bounds.Min.Z);
+            Vector3 v2 = new Vector3(bounds.Max.X, basePlaneY, bounds.Max.Z);
+            Vector3 v3 = new Vector3(bounds.Min.X, basePlaneY, bounds.Max.Z);
+
+            // 4. Define the rotations.  IMPORTANT:  Apply them in the *correct order*.
+            var rotation1 = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -MathF.PI / 2); // -90 degrees around X
+            var rotation2 = Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI);     // 180 degrees around X
+
+            // 5. Combine the rotations
+            var combinedRotation = rotation2 * rotation1;
+
+
+            // 6. Apply the *combined* rotation to the base plate vertices.
+            v0 = Vector3.Transform(v0, combinedRotation);
+            v1 = Vector3.Transform(v1, combinedRotation);
+            v2 = Vector3.Transform(v2, combinedRotation);
+            v3 = Vector3.Transform(v3, combinedRotation);
+
+
+            // 7. Add vertices and indices to meshData.
             int baseVertexOffset = meshData.Vertices.Count;
             meshData.Vertices.AddRange(new[] { v0, v1, v2, v3 });
 
             meshData.Indices.AddRange(new[] {
-            baseVertexOffset, baseVertexOffset + 2, baseVertexOffset + 1,
-            baseVertexOffset, baseVertexOffset + 3, baseVertexOffset + 2
-                });
+                baseVertexOffset, baseVertexOffset + 2, baseVertexOffset + 1,
+                baseVertexOffset, baseVertexOffset + 3, baseVertexOffset + 2
+            });
         }
 
+        private static (Vector3 Min, Vector3 Max) CalculateBoundsPlate(Vector3[] vertices)
+        {
+            if (vertices.Length == 0) return (Vector3.Zero, Vector3.Zero);
+
+            Vector3 min = vertices[0];
+            Vector3 max = vertices[0];
+
+            for (int i = 1; i < vertices.Length; i++)
+            {
+                min = Vector3.Min(min, vertices[i]);
+                max = Vector3.Max(max, vertices[i]);
+            }
+            return (min, max);
+        }
 
         private static void AddPrintableSides(MeshData meshData)
         {
@@ -351,10 +402,59 @@ namespace map2stl.ModelTweaks
                 edges[edgeKey] = 1;
             }
         }
+        private static List<(Vector3 A, Vector3 B, Vector3 C)> ExtractDemTriangles(ModelRoot demModel)
+        {
+            var triList = new List<(Vector3, Vector3, Vector3)>();
+            foreach (var node in demModel.LogicalNodes)
+            {
+                if (node.Mesh == null) continue;
+                foreach (var prim in node.Mesh.Primitives)
+                {
+                    var positions = prim.GetVertexAccessor("POSITION").AsVector3Array();
+                    var indices = prim.IndexAccessor.AsIndicesArray();
+                    for (int i = 0; i < indices.Count; i += 3)
+                    {
+                        Vector3 p1 = Vector3.Transform(positions[(int)indices[i]], node.GetWorldMatrix(null, 0));
+                        Vector3 p2 = Vector3.Transform(positions[(int)indices[i + 1]], node.GetWorldMatrix(null, 0));
+                        Vector3 p3 = Vector3.Transform(positions[(int)indices[i + 2]], node.GetWorldMatrix(null, 0));
+                        triList.Add((p1, p2, p3));
+                    }
+                }
+            }
+            return triList;
+        }
+        private static (Vector3 Min, Vector3 Max) ComputeModelBoundingBox(ModelRoot model)
+        {
+            Vector3 min = new Vector3(float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue);
+            foreach (var node in model.LogicalNodes)
+            {
+                var (nMin, nMax) = ComputeNodeBoundingBox(node);
+                min = Vector3.Min(min, nMin);
+                max = Vector3.Max(max, nMax);
+            }
+            return (min, max);
+        }
 
-
-
-
+        private static (Vector3 Min, Vector3 Max) ComputeNodeBoundingBox(Node node)
+        {
+            Vector3 min = new Vector3(float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue);
+            if (node.Mesh != null)
+            {
+                foreach (var prim in node.Mesh.Primitives)
+                {
+                    var positions = prim.GetVertexAccessor("POSITION").AsVector3Array();
+                    for (int i = 0; i < positions.Count; i++)
+                    {
+                        Vector3 wpos = Vector3.Transform(positions[i], node.GetWorldMatrix(null, 0));
+                        min = Vector3.Min(min, wpos);
+                        max = Vector3.Max(max, wpos);
+                    }
+                }
+            }
+            return (min, max);
+        }
 
 
 

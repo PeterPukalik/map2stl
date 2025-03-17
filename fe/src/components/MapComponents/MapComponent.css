@@ -1,45 +1,113 @@
-/* Ensure Wrapper Uses Full Screen */
-.wrapper {
+/* Outer container: 80% of screen width, centered */
+.outer-wrapper {
+  width: 80%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  width: 100vh;
-  height: 900vh;
-  padding-top: 20px;
-  gap: 10px;
+  gap: 20px; /* space between top and bottom sections */
+  font-family: "Helvetica Neue", Arial, sans-serif; /* optional font */
 }
 
-/* Common Box Styles */
-.box {
-  width: 70%;
-  height: 50vh; /* Increased from 40vh */
-  border: 2px solid black;
+/* Top Section: row with left controls + right map */
+.top-section {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f8f8f8;
+  flex-direction: row;
+  height: 40vh;            /* you can switch to 50vh or a fixed px if you prefer */
+  border-radius: 8px;      /* rounded corners for a "card" look */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  overflow: hidden;        /* ensures corners are clipped inside border-radius */
+}
+
+/* Left column for controls */
+.controls-column {
+  width: 250px; 
+  padding: 20px; 
+  background: #2c3e50;  /* slightly lighter dark background */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #ecf0f1;          /* light text for contrast */
+  border-right: 1px solid #2c3e50; /* subtle boundary between columns */
+}
+
+/* Container for each slider label + input */
+.slider-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.slider-block label {
+  font-size: 0.95rem;
+  color: #ecf0f1;
+}
+
+/* Style the sliders (range inputs) to match dark theme */
+.slider-block input[type="range"] {
+  -webkit-appearance: none; /* remove default styling */
+  width: 100%;
+  height: 4px;
+  background: #bdc3c7;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-block input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2c3e50;
+  border: 2px solid #ecf0f1;
+  cursor: pointer;
+}
+
+/* Right column for the map */
+.map-column {
+  flex: 1;
   position: relative;
 }
 
-/* Ensure Map Fills the Box */
+/* Force the Leaflet map to fill this container */
 .map-container {
   width: 100%;
   height: 100%;
 }
 
-/* Centered Button & Status Text */
-.controls {
-  text-align: center;
-  margin: 10px 0;
-}
-
-/* Ensure 3D Model Box Uses Full Space */
-.model-container {
-  width: 100%;
-  height: 100%;
-  background: #eaeaea;
+/* Bottom Section: 3D Model Preview */
+.bottom-section {
+  height: 40vh; 
+  border-radius: 8px;
+  /* background: #34495e; */
   display: flex;
   justify-content: center;
   align-items: center;
+  /* color: #ecf0f1;         */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  /* If you want a top border, add: border-top: 1px solid #2c3e50; */
+}
+
+.generate-button {
+  background-color: #2980b9; /* Blue accent */
+  color: #ecf0f1;            /* Light text */
+  border: none;
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  text-align: center;
+}
+
+.generate-button:hover {
+  background-color: #3cb0fd; /* Lighter blue on hover */
+  transform: translateY(-2px);
+}
+
+.generate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

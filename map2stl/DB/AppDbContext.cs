@@ -10,10 +10,12 @@ namespace map2stl.DB
         {
             Users = Set<User>();
             Models = Set<MapModel>();
+            Details = Set<MapDetails>();
         }
 
         public DbSet<User> Users { get; set; }
         public DbSet<MapModel> Models { get; set; }
+        public DbSet<MapDetails> Details { get; set; }
     }
    
 }

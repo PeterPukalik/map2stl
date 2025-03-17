@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-// For React Router v6+:
 import { useSearchParams } from "react-router-dom";
 import { resetPasswordWithToken } from "../../services/api.js";
+import "./AuthForms.css"; // <-- Import the shared CSS
 
 function ResetPasswordForm() {
   const [searchParams] = useSearchParams();
@@ -26,11 +26,10 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div>
+    <div className="auth-form-container">
       <h2>Reset Your Password</h2>
       {token ? (
         <form onSubmit={handleSubmit}>
-          <label>New Password:</label>
           <input
             type="password"
             value={newPassword}
@@ -42,7 +41,6 @@ function ResetPasswordForm() {
       ) : (
         <p>No token provided in the URL.</p>
       )}
-
       {message && <p>{message}</p>}
     </div>
   );

@@ -28,5 +28,11 @@ namespace map2stl.DB
         public int UserId { get; set; }
         [ForeignKey("UserId")]
         public User? Owner { get; set; }
+
+        // List of versions of this model
+        public List<MapModel> Versions { get; set; } = new List<MapModel>();
+
+        // Model details
+        public MapDetails Details { get; set; } = new MapDetails();
     }
 }
