@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace map2stl.DB
 {
@@ -29,10 +30,40 @@ namespace map2stl.DB
         [ForeignKey("UserId")]
         public User? Owner { get; set; }
 
-        // List of versions of this model
+        // Self-reference for versioning: 
+        // If this model is a version, ParentId holds the Id of its parent model
+        public int? ParentId { get; set; }
+        [ForeignKey("ParentId")]
+        public MapModel? Parent { get; set; }
+
+        // Navigation property for child versions
         public List<MapModel> Versions { get; set; } = new List<MapModel>();
 
-        // Model details
-        public MapDetails Details { get; set; } = new MapDetails();
+        // Additional properties from BoundingBoxRequest:
+
+        [Required]
+        public double SouthLat { get; set; }
+
+        [Required]
+        public double WestLng { get; set; }
+
+        [Required]
+        public double NorthLat { get; set; }
+
+        [Required]
+        public double EastLng { get; set; }
+
+        [Required]
+        public double zFactor { get; set; }
+
+        [Required]
+        public double meshReduceFactor { get; set; }
+
+        [Required]
+        public int estimateSize { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string format { get; set; }
     }
 }

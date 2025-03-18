@@ -11,8 +11,8 @@ using map2stl.DB;
 namespace map2stl.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250317190402_AddMapDetails")]
-    partial class AddMapDetails
+    [Migration("20250318211610_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,6 +36,9 @@ namespace map2stl.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 
+                    b.Property<double>("EastLng")
+                        .HasColumnType("BINARY_DOUBLE");
+
                     b.Property<byte[]>("GLBData")
                         .IsRequired()
                         .HasColumnType("BLOB");
@@ -45,13 +48,41 @@ namespace map2stl.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 
+                    b.Property<double>("NorthLat")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("NUMBER(10)");
+
                     b.Property<byte[]>("STLData")
                         .HasColumnType("BLOB");
+
+                    b.Property<double>("SouthLat")
+                        .HasColumnType("BINARY_DOUBLE");
 
                     b.Property<int>("UserId")
                         .HasColumnType("NUMBER(10)");
 
+                    b.Property<double>("WestLng")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<int>("estimateSize")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("format")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)");
+
+                    b.Property<double>("meshReduceFactor")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<double>("zFactor")
+                        .HasColumnType("BINARY_DOUBLE");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
 
                     b.HasIndex("UserId");
 
@@ -91,6 +122,11 @@ namespace map2stl.Migrations
 
             modelBuilder.Entity("map2stl.DB.MapModel", b =>
                 {
+                    b.HasOne("map2stl.DB.MapModel", "Parent")
+                        .WithMany("Versions")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("map2stl.DB.User", "Owner")
                         .WithMany("Models")
                         .HasForeignKey("UserId")
@@ -98,6 +134,13 @@ namespace map2stl.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("map2stl.DB.MapModel", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("map2stl.DB.User", b =>

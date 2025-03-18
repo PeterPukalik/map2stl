@@ -10,12 +10,22 @@ namespace map2stl.DB
         {
             Users = Set<User>();
             Models = Set<MapModel>();
-            Details = Set<MapDetails>();
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<MapModel>()
+                .HasMany(m => m.Versions)
+                .WithOne(m => m.Parent)
+                .HasForeignKey(m => m.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+
 
         public DbSet<User> Users { get; set; }
         public DbSet<MapModel> Models { get; set; }
-        public DbSet<MapDetails> Details { get; set; }
     }
    
 }

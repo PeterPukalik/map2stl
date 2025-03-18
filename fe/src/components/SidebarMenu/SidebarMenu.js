@@ -31,7 +31,7 @@ const SidebarMenu = () => {
         <>
           <li><Link to="/login">Login</Link></li>
           <li><Link to="/register">Register</Link></li>
-          <li><Link to="/resetPassword">Forgotten Password</Link></li>
+          <li><Link to="/forgotpassword">Forgotten Password</Link></li>
         </>
       ) : (
         <>

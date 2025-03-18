@@ -37,6 +37,10 @@ namespace map2stl.Controllers
             public double zFactor { get; set; }
 
             public double meshReduceFactor { get; set; }
+
+            public int estimateSize { get; set; }
+
+            public string format { get; set; }
         }
 
         // POST: generateStl
@@ -71,7 +75,8 @@ namespace map2stl.Controllers
                 string apiUrl = $"https://api.elevationapi.com/api/model/3d/bbox/" +
                                 $"{request.WestLng},{request.EastLng},{request.SouthLat},{request.NorthLat}" +
                                 $"?dataset=SRTM_GL3&textured=true&imageryProvider=MapBox-SatelliteStreet" +
-                                $"&textureQuality=2&format=glTF&zFactor=1&adornments=false&meshReduceFactor=0.69" +
+                                $"&textureQuality=2&format=glTF&zFactor={request.zFactor}" +
+                                $"&adornments=false&meshReduceFactor={request.meshReduceFactor}" +
                                 $"&clientConnectionId=7I6FTpIxL0qIuNJaY3hHTA&onlyEstimateSize=false";
 
                 // 2. Fetch the JSON response from the external API
@@ -118,11 +123,18 @@ namespace map2stl.Controllers
                     var mapModel = new MapModel
                     {
                         Name = $"Model_{DateTime.UtcNow:yyyyMMdd_HHmmss}",
-                        GLBData = glbBytes, // Store the downloaded glbBytes
+                        GLBData = glbBytes,
                         Description = "Generated from bounding box",
-                        UserId = userId
+                        UserId = userId,
+                        SouthLat = request.SouthLat,
+                        WestLng = request.WestLng,
+                        NorthLat = request.NorthLat,
+                        EastLng = request.EastLng,
+                        zFactor = request.zFactor,
+                        meshReduceFactor = request.meshReduceFactor,
+                        estimateSize = request.estimateSize,
+                        format = request.format
                     };
-
                     _context.Models.Add(mapModel);
                     await _context.SaveChangesAsync();
 
@@ -162,6 +174,158 @@ namespace map2stl.Controllers
             }
         }
 
+
+        [HttpPost("generateModel")]
+        public async Task<IActionResult> GenerateModel([FromBody] BoundingBoxRequest request)
+        {
+            if (request == null)
+                return BadRequest("No bounding box provided.");
+
+            try
+            {
+                // 1. Construct the API request URL
+                string apiUrl = $"https://api.elevationapi.com/api/model/3d/bbox/" +
+                                $"{request.WestLng},{request.EastLng},{request.SouthLat},{request.NorthLat}" +
+                                $"?dataset=SRTM_GL3&textured=true&imageryProvider=MapBox-SatelliteStreet" +
+                                $"&textureQuality=2&format={request.format}&zFactor={request.zFactor}" +
+                                $"&adornments=false&meshReduceFactor={request.meshReduceFactor}" +
+                                $"&clientConnectionId=7I6FTpIxL0qIuNJaY3hHTA&onlyEstimateSize={(request.estimateSize == 0 ? "false" : "true")}";
+
+                // 2. Fetch the JSON response from the external API
+                HttpResponseMessage response = await _httpClient.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    return StatusCode((int)response.StatusCode, $"Failed to fetch glTF metadata: {errorContent}");
+                }
+
+                // 3. Parse JSON response to extract the model file path
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonResponse);
+                var root = jsonDoc.RootElement;
+                string modelFilePath = root.GetProperty("assetInfo").GetProperty("modelFile").GetString();
+                string fullModelUrl = $"https://api.elevationapi.com{modelFilePath}"; // Full download URL
+
+                // 4. Download the .glb file
+                HttpResponseMessage modelResponse = await _httpClient.GetAsync(fullModelUrl);
+                if (!modelResponse.IsSuccessStatusCode)
+                {
+                    return StatusCode((int)modelResponse.StatusCode, "Failed to download glTF model file.");
+                }
+                byte[] glbBytes = await modelResponse.Content.ReadAsByteArrayAsync();
+
+                // 5. Check if the user is authenticated by looking for the JWT token
+                int userId = 0;
+                var authHeader = Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+                {
+                    string token = authHeader.Substring("Bearer ".Length);
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwtToken = handler.ReadJwtToken(token);
+                    // "sub" (or "id") claim holds the user id; adjust based on your token claims
+                    var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                    if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedId))
+                    {
+                        userId = parsedId;
+                    }
+                }
+
+                if (userId != 0)
+                {
+                    var mapModel = new MapModel
+                    {
+                        Name = $"Model_{DateTime.UtcNow:yyyyMMdd_HHmmss}",
+                        GLBData = glbBytes,
+                        Description = "Generated from bounding box",
+                        UserId = userId,
+                        SouthLat = request.SouthLat,
+                        WestLng = request.WestLng,
+                        NorthLat = request.NorthLat,
+                        EastLng = request.EastLng,
+                        zFactor = request.zFactor,
+                        meshReduceFactor = request.meshReduceFactor,
+                        estimateSize = request.estimateSize,
+                        format = request.format
+                    };
+
+                    _context.Models.Add(mapModel);
+                    await _context.SaveChangesAsync();
+
+                    // Trigger asynchronous STL conversion using the bounding box (request)
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            byte[] stlBytes = await ConvertGlbToStl(request);
+                            mapModel.STLData = stlBytes;
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error converting model {mapModel.Id} to STL: {ex.Message}");
+                        }
+                    });
+                }
+
+                // 8. (Optional) Save the GLB file to disk, creating a folder structure by date.
+                string basePath = Path.Combine(Directory.GetCurrentDirectory(), "models");
+                string dateFolder = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                string fullDirectory = Path.Combine(basePath, dateFolder);
+                Directory.CreateDirectory(fullDirectory); // Ensure directory exists
+                string fileName = $"glb_{Guid.NewGuid().ToString().Substring(0, 8)}.glb";
+                string finalFilePath = Path.Combine(fullDirectory, fileName);
+                await System.IO.File.WriteAllBytesAsync(finalFilePath, glbBytes);
+                string fileUrl = $"/models/{dateFolder}/{fileName}";
+
+                // 9. Return the URL to the stored GLB file
+                return Ok(new { success = true, fileUrl = fileUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpPost("estimateSize")]
+        public async Task<IActionResult> EstimateSize([FromBody] BoundingBoxRequest request)
+        {
+            if (request == null)
+                return BadRequest("No bounding box provided.");
+
+            try
+            {
+                // 1. Construct the API request URL
+                string apiUrl = $"https://api.elevationapi.com/api/model/3d/bbox/" +
+                                $"{request.WestLng},{request.EastLng},{request.SouthLat},{request.NorthLat}" +
+                                $"?dataset=SRTM_GL3&textured=true&imageryProvider=MapBox-SatelliteStreet" +
+                                $"&textureQuality=2&format=glTF&zFactor={request.zFactor}" +
+                                $"&adornments=false&meshReduceFactor={request.meshReduceFactor}" +
+                                $"&clientConnectionId=2hRsNholWShDxDtfpRM6Qg&onlyEstimateSize={(request.estimateSize == 0 ? "false" : "true")}";
+
+                // 2. Fetch the JSON response from the external API
+                HttpResponseMessage response = await _httpClient.GetAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    return StatusCode((int)response.StatusCode, $"Failed to fetch glTF metadata: {errorContent}");
+                }
+                // 3. Parse JSON response to extract the model file path
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonResponse);
+                var root = jsonDoc.RootElement;
+
+                double estimatedSize = root.GetProperty("estimatedModelFileSizeMB").GetDouble();
+
+                // Return only the estimatedModelFileSizeMB parameter to the frontend.
+                return Ok(new { success = true, estimatedModelFileSizeMB = estimatedSize });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
         private async Task<byte[]> ConvertGlbToStl(BoundingBoxRequest bbox)
         {
             // Use your client connection ID or get it from configuration
@@ -187,7 +351,6 @@ namespace map2stl.Controllers
 
 
 
-        // GET: userModels
         [HttpGet("userModels")]
         public IActionResult GetUserModels()
         {
@@ -198,9 +361,25 @@ namespace map2stl.Controllers
             if (!int.TryParse(userIdClaim.Value, out var userId))
                 return BadRequest("Invalid User ID.");
 
-            var models = _context.Models.Where(m => m.UserId == userId).ToList();
+            // Fetch only the root models (ParentId == null) and project required properties.
+            var models = _context.Models
+                .Where(m => m.UserId == userId && m.ParentId == null)
+                .Include(m => m.Versions)
+                .Select(m => new
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Versions = m.Versions.Select(v => new
+                    {
+                        Id = v.Id,
+                        Name = v.Name
+                    }).ToList()
+                })
+                .ToList();
+
             return Ok(models);
         }
+
 
         [Authorize]
         [HttpGet("shareModel/{modelId}")]

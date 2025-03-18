@@ -78,6 +78,20 @@ export const generateTerrainModel = async (bounds) => {
   return `${BASE_URL}${response.fileUrl}`; 
 };
 
+// load model
+export const generateModel = async (bounds) => {
+  const token = localStorage.getItem("token") || "";
+  const response = await apiRequest("/Model/generateModel", "POST", bounds, token);
+  
+  return `${BASE_URL}${response.fileUrl}`; 
+};
+
+export const estimateSize = async (bounds) => {
+  const token = localStorage.getItem("token") || "";
+  const response = await apiRequest("/Model/estimateSize", "POST", bounds, token);
+  
+  return `${BASE_URL}${response.fileUrl}`; 
+};
 // export async function fetchUserModels() {
 //   const token = localStorage.getItem("token");
 //   const response = await fetch(`${BASE_URL}/userModels`, {
