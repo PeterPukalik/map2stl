@@ -250,21 +250,6 @@ namespace map2stl.Controllers
 
                     _context.Models.Add(mapModel);
                     await _context.SaveChangesAsync();
-
-                    // Trigger asynchronous STL conversion using the bounding box (request)
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            byte[] stlBytes = await ConvertGlbToStl(request);
-                            mapModel.STLData = stlBytes;
-                            await _context.SaveChangesAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error converting model {mapModel.Id} to STL: {ex.Message}");
-                        }
-                    });
                 }
 
                 // 8. (Optional) Save the GLB file to disk, creating a folder structure by date.

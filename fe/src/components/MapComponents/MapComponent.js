@@ -195,3 +195,6 @@ function MapWithDraw() {
 }
 
 export default MapWithDraw;
+
+
+//tablka zdielanie kvoli editovaniu
