@@ -18,31 +18,27 @@ namespace map2stl.ModelTweaks
     public static class ModelProcessor
     {
         /// <summary>
-        /// Main entry point:
-        /// 1) Load terrain and extrude it downward into a solid "block."
-        /// 2) Load buildings, sample the original terrain surface for their base height, place them on top.
+        /// Process terrain and building models.
+        /// 1) Load terrain and extrude it downward into a solid block.
+        /// 2) Load buildings, clip building triangles to the terrain bounds,
+        ///    adjust their height based on the modified (extruded) terrain, and place them on top.
         /// 3) Rotate final mesh and export to STL.
+        /// 
+        /// basePlateOffset: a positive number that lowers the top of the baseplate relative to the original terrain’s lowest point.
+        /// This effectively raises the model above the baseplate.
         /// </summary>
-        /// <param name="terrainGlbPath">Path to terrain (DEM) GLB.</param>
-        /// <param name="buildingsGlbPath">Path to buildings (OSM) GLB.</param>
-        /// <param name="outputStlPath">Output STL path.</param>
-        /// <param name="basePlateHeightFraction">Fraction of total model height to extrude below min Y.</param>
-        /// <param name="fillBottom">
-        /// If true, attempt to triangulate the bottom face (assuming a convex boundary).
-        /// For non-convex boundaries, you need a more robust triangulator.
-        /// </param>
         public static void ProcessModels(
             string terrainGlbPath,
             string buildingsGlbPath,
             string outputStlPath,
-            float basePlateHeightFraction = 0.0025f,
-            bool fillBottom = true)
+            float basePlateHeightFraction = 0.25f,
+            bool fillBottom = true,
+            float basePlateOffset = 0)
         {
             // --------------------------------------------------------
             // 1. LOAD & EXTRACT TERRAIN GEOMETRY
             // --------------------------------------------------------
             var terrainModel = ModelRoot.Load(terrainGlbPath);
-
             var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
             var origTerrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
             var origTerrainIndices = terrainMesh.GetTriangleIndices().SelectMany(t => new[] { t.A, t.B, t.C }).ToArray();
@@ -55,15 +51,21 @@ namespace map2stl.ModelTweaks
             // --------------------------------------------------------
             // 2. EXTRUDE TERRAIN TO MAKE IT A WATERTIGHT BLOCK
             // --------------------------------------------------------
-            FillUnderTerrain(terrainData, basePlateHeightFraction, fillBottom);
-            // terrainData now represents a solid chunk of terrain, with
-            // boundary edges extruded down and an optional bottom face.
+            // Now, we lower the baseplate top by 'basePlateOffset'
+            // (i.e. the baseplate will start lower than the original minY)
+            FillUnderTerrain(terrainData, basePlateHeightFraction, fillBottom, basePlateOffset);
+            // terrainData now represents a solid chunk of terrain with a lower baseplate.
 
             // --------------------------------------------------------
-            // 3. LOAD BUILDINGS & PLACE THEM ON TOP
+            // 3. LOAD BUILDINGS, CLIP, ADJUST & PLACE THEM ON TOP
             // --------------------------------------------------------
+            // Determine the XZ bounds of the terrain from the original vertices.
+            float terrainMinX = origTerrainVertices.Min(v => v.X);
+            float terrainMaxX = origTerrainVertices.Max(v => v.X);
+            float terrainMinZ = origTerrainVertices.Min(v => v.Z);
+            float terrainMaxZ = origTerrainVertices.Max(v => v.Z);
+
             var buildingsModel = ModelRoot.Load(buildingsGlbPath);
-
             if (buildingsModel.LogicalMeshes.Count > 0)
             {
                 var buildingMesh = buildingsModel.LogicalMeshes[0];
@@ -74,13 +76,24 @@ namespace map2stl.ModelTweaks
                                                    .SelectMany(t => new[] { t.A, t.B, t.C })
                                                    .ToArray();
 
-                    // -- SHIFT building so it sits on top of the *original* terrain surface
-                    AdjustBuildingVertices(buildingVertices, origTerrainVertices, origTerrainIndices);
+                    // Clip building triangles based on the terrain XZ bounds.
+                    (Vector3[] clippedVerts, int[] clippedIndices) = ClipBuildingTrianglesSimple(
+                        buildingVertices,
+                        buildingIndices,
+                        terrainMinX, terrainMaxX,
+                        terrainMinZ, terrainMaxZ);
 
-                    // -- Merge building geometry into the extruded terrain
+                    if (clippedVerts.Length == 0)
+                        continue; // skip if no triangle is fully inside bounds
+
+                    // Shift building vertices so they sit on top of the extruded terrain.
+                    // We adjust the computed terrain height by subtracting basePlateOffset.
+                    AdjustBuildingVertices(clippedVerts, origTerrainVertices, origTerrainIndices, basePlateOffset);
+
+                    // Merge the clipped and adjusted building geometry into the extruded terrain.
                     int offset = terrainData.Vertices.Count;
-                    terrainData.Vertices.AddRange(buildingVertices);
-                    foreach (var idx in buildingIndices)
+                    terrainData.Vertices.AddRange(clippedVerts);
+                    foreach (var idx in clippedIndices)
                     {
                         terrainData.Indices.Add(idx + offset);
                     }
@@ -90,7 +103,6 @@ namespace map2stl.ModelTweaks
             // --------------------------------------------------------
             // 4. ROTATE FINAL MESH
             // --------------------------------------------------------
-            // If you need to reorient for printing:
             RotateMesh(terrainData, -MathF.PI / 2, Vector3.UnitX); // -90° about X
             RotateMesh(terrainData, MathF.PI, Vector3.UnitX);      // 180° about X
 
@@ -100,9 +112,51 @@ namespace map2stl.ModelTweaks
             ExportToStl(terrainData, outputStlPath);
         }
 
+        /// <summary>
+        /// Overload: Process only the terrain model.
+        /// Loads the terrain, extrudes it (adding a solid base), rotates it, and exports to STL.
+        /// </summary>
+        public static void ProcessModels(
+            string terrainGlbPath,
+            string outputStlPath,
+            float basePlateHeightFraction = 0.25f,
+            bool fillBottom = true,
+            float basePlateOffset = 0)
+        {
+            // --------------------------------------------------------
+            // 1. LOAD & EXTRACT TERRAIN GEOMETRY
+            // --------------------------------------------------------
+            var terrainModel = ModelRoot.Load(terrainGlbPath);
+            var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
+            var terrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+            var terrainIndices = terrainMesh.GetTriangleIndices().SelectMany(t => new[] { t.A, t.B, t.C }).ToArray();
+
+            // Create a MeshData for the top surface of the terrain
+            var terrainData = new MeshData();
+            terrainData.Vertices.AddRange(terrainVertices);
+            terrainData.Indices.AddRange(terrainIndices);
+
+            // --------------------------------------------------------
+            // 2. EXTRUDE TERRAIN TO MAKE IT A WATERTIGHT BLOCK
+            // --------------------------------------------------------
+            FillUnderTerrain(terrainData, basePlateHeightFraction, fillBottom, basePlateOffset);
+
+            // --------------------------------------------------------
+            // 3. ROTATE FINAL MESH
+            // --------------------------------------------------------
+            RotateMesh(terrainData, -MathF.PI / 2, Vector3.UnitX); // -90° about X
+            RotateMesh(terrainData, MathF.PI, Vector3.UnitX);      // 180° about X
+
+            // --------------------------------------------------------
+            // 4. EXPORT
+            // --------------------------------------------------------
+            ExportToStl(terrainData, outputStlPath);
+        }
+
         #region Building -> Terrain Height Adjustment
 
-        private static void AdjustBuildingVertices(Vector3[] buildingVertices, Vector3[] terrainVertices, int[] terrainIndices)
+        // Modified to include an extra parameter 'basePlateOffset'
+        private static void AdjustBuildingVertices(Vector3[] buildingVertices, Vector3[] terrainVertices, int[] terrainIndices, float basePlateOffset)
         {
             if (buildingVertices.Length == 0) return;
 
@@ -112,6 +166,8 @@ namespace map2stl.ModelTweaks
             {
                 var vertex = buildingVertices[i];
                 float terrainY = FindTerrainHeight(vertex.X, vertex.Z, terrainVertices, terrainIndices);
+                // Subtract the basePlateOffset so that buildings are shifted upward relative to the extruded terrain.
+                terrainY -= basePlateOffset;
                 float deltaY = vertex.Y - lowestBuildingY;
                 buildingVertices[i] = new Vector3(vertex.X, terrainY + deltaY, vertex.Z);
             }
@@ -180,14 +236,87 @@ namespace map2stl.ModelTweaks
 
         #endregion
 
+        #region Clip Building Triangles
+
+        /// <summary>
+        /// Simple clipping: discard any triangle if any vertex falls outside the given XZ bounds.
+        /// Returns the vertices and indices of the kept triangles.
+        /// </summary>
+        private static (Vector3[] vertices, int[] indices) ClipBuildingTrianglesSimple(
+            Vector3[] buildingVertices,
+            int[] buildingIndices,
+            float minX, float maxX,
+            float minZ, float maxZ)
+        {
+            List<Vector3> keptVertices = new List<Vector3>();
+            List<int> keptIndices = new List<int>();
+            Dictionary<int, int> indexMap = new Dictionary<int, int>();
+
+            for (int i = 0; i < buildingIndices.Length; i += 3)
+            {
+                int i0 = buildingIndices[i];
+                int i1 = buildingIndices[i + 1];
+                int i2 = buildingIndices[i + 2];
+
+                Vector3 v0 = buildingVertices[i0];
+                Vector3 v1 = buildingVertices[i1];
+                Vector3 v2 = buildingVertices[i2];
+
+                // Check if all vertices are within the terrain's XZ bounds.
+                bool inside0 = IsInsideBounds(v0, minX, maxX, minZ, maxZ);
+                bool inside1 = IsInsideBounds(v1, minX, maxX, minZ, maxZ);
+                bool inside2 = IsInsideBounds(v2, minX, maxX, minZ, maxZ);
+
+                if (inside0 && inside1 && inside2)
+                {
+                    // Map vertices to new indices, if not already mapped.
+                    if (!indexMap.TryGetValue(i0, out int newIndex0))
+                    {
+                        newIndex0 = keptVertices.Count;
+                        keptVertices.Add(v0);
+                        indexMap[i0] = newIndex0;
+                    }
+                    if (!indexMap.TryGetValue(i1, out int newIndex1))
+                    {
+                        newIndex1 = keptVertices.Count;
+                        keptVertices.Add(v1);
+                        indexMap[i1] = newIndex1;
+                    }
+                    if (!indexMap.TryGetValue(i2, out int newIndex2))
+                    {
+                        newIndex2 = keptVertices.Count;
+                        keptVertices.Add(v2);
+                        indexMap[i2] = newIndex2;
+                    }
+
+                    keptIndices.Add(indexMap[i0]);
+                    keptIndices.Add(indexMap[i1]);
+                    keptIndices.Add(indexMap[i2]);
+                }
+            }
+
+            return (keptVertices.ToArray(), keptIndices.ToArray());
+        }
+
+        /// <summary>
+        /// Checks if a vertex is inside the given XZ bounds.
+        /// </summary>
+        private static bool IsInsideBounds(Vector3 v, float minX, float maxX, float minZ, float maxZ)
+        {
+            return (v.X >= minX && v.X <= maxX && v.Z >= minZ && v.Z <= maxZ);
+        }
+
+        #endregion
+
         #region Extrude Terrain -> Solid Block
 
         /// <summary>
         /// Finds the outer boundary of the terrain mesh and extrudes it
         /// straight downward by "basePlateHeightFraction" of the total height.
         /// Optionally caps the bottom (naive fan triangulation, works if boundary is convex).
+        /// Uses an extra parameter 'basePlateOffset' to lower the top of the baseplate.
         /// </summary>
-        private static void FillUnderTerrain(MeshData meshData, float basePlateHeightFraction, bool fillBottom)
+        private static void FillUnderTerrain(MeshData meshData, float basePlateHeightFraction, bool fillBottom, float basePlateOffset = 0)
         {
             if (meshData.Vertices.Count == 0) return;
 
@@ -195,7 +324,10 @@ namespace map2stl.ModelTweaks
             float maxY = meshData.Vertices.Max(v => v.Y);
             float totalHeight = maxY - minY;
 
-            float basePlaneY = minY - (totalHeight * basePlateHeightFraction);
+            // Lower the top of the baseplate by the offset.
+            float basePlateTop = minY - basePlateOffset;
+            // Then extrude downward from the lowered top.
+            float basePlaneY = basePlateTop - (totalHeight * basePlateHeightFraction);
 
             // 1) Identify boundary edges
             var boundaryEdges = FindBoundaryEdgesWithIndices(meshData);
@@ -203,8 +335,6 @@ namespace map2stl.ModelTweaks
             // 2) Create "down" copies of boundary vertices
             var newVertices = new List<Vector3>();
             var newIndices = new List<int>();
-
-            // Map from original top vertex -> new "down" vertex index
             var downMap = new Dictionary<int, int>();
 
             foreach (var (i1, i2) in boundaryEdges)
@@ -224,9 +354,9 @@ namespace map2stl.ModelTweaks
                     downMap[i2] = i2Down;
                 }
 
-                // 2 triangles for the side wall
-                newIndices.AddRange(new[] { i1, i1Down, i2Down });
-                newIndices.AddRange(new[] { i1, i2Down, i2 });
+                // Two triangles for the side wall
+                newIndices.AddRange(new[] { i1, downMap[i1], downMap[i2] });
+                newIndices.AddRange(new[] { i1, downMap[i2], i2 });
             }
 
             // Add the new "down" vertices
@@ -245,7 +375,7 @@ namespace map2stl.ModelTweaks
         }
 
         /// <summary>
-        /// Finds edges that appear in exactly 1 triangle => boundary.
+        /// Finds edges that appear in exactly 1 triangle (the boundary).
         /// Returns them as (i1, i2) in ascending order.
         /// </summary>
         private static List<(int, int)> FindBoundaryEdgesWithIndices(MeshData meshData)
@@ -267,9 +397,7 @@ namespace map2stl.ModelTweaks
             foreach (var kvp in edgeDict)
             {
                 if (kvp.Value == 1)
-                {
-                    boundary.Add(kvp.Key); // (min, max)
-                }
+                    boundary.Add(kvp.Key);
             }
             return boundary;
         }
@@ -282,21 +410,19 @@ namespace map2stl.ModelTweaks
         }
 
         /// <summary>
-        /// Naive "fan" triangulation for the bottom ring (assuming it's convex).
-        /// For non-convex shapes, you need a robust 2D polygon triangulator.
+        /// Naive "fan" triangulation for the bottom ring (assuming convexity).
+        /// For non-convex shapes, a more robust 2D polygon triangulation is needed.
         /// </summary>
         private static void FillBottomPolygon(MeshData meshData, List<int> bottomIndices)
         {
             if (bottomIndices.Count < 3) return;
 
-            // All these vertices share the same Y, so we can do 2D triangulation in XZ.
             var bottomVerts = bottomIndices.Select(i => meshData.Vertices[i]).ToList();
             float cx = bottomVerts.Average(v => v.X);
             float cz = bottomVerts.Average(v => v.Z);
-            float yVal = bottomVerts[0].Y; // they all share the same Y
+            float yVal = bottomVerts[0].Y;
             Vector3 centroid = new Vector3(cx, yVal, cz);
 
-            // Sort boundary vertices by angle around centroid
             bottomIndices.Sort((iA, iB) =>
             {
                 var va = meshData.Vertices[iA] - centroid;
@@ -306,7 +432,6 @@ namespace map2stl.ModelTweaks
                 return angleA.CompareTo(angleB);
             });
 
-            // Fan triangulation from [0]
             for (int i = 1; i < bottomIndices.Count - 1; i++)
             {
                 meshData.Indices.Add(bottomIndices[0]);

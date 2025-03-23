@@ -17,13 +17,15 @@ namespace map2stl.Tests
             // Arrange
             string osmFilePath = "C:\\Users\\Pukalik.Peter\\source\\repos\\map2stl\\map2stl\\ModelTweaks\\osm.glb";
             string demFilePath = "C:\\Users\\Pukalik.Peter\\source\\repos\\map2stl\\map2stl\\ModelTweaks\\model.glb";
+            string outputStlOsmPath = "C:\\Users\\Pukalik.Peter\\source\\repos\\map2stl\\map2stl\\ModelTweaks\\outputOsm.stl";
             string outputStlPath = "C:\\Users\\Pukalik.Peter\\source\\repos\\map2stl\\map2stl\\ModelTweaks\\output.stl";
             string outputglbPath = "C:\\Users\\Pukalik.Peter\\source\\repos\\map2stl\\map2stl\\ModelTweaks\\output.glb";
 
             // Act
             //ModelProcessor.ProcessModels(osmFilePath, demFilePath, outputStlPath);
             //ModelProcessor.ProcessModels(osmFilePath, demFilePath, outputStlPath, outputglbPath);
-            ModelProcessor.ProcessModels(demFilePath, osmFilePath, outputStlPath);
+            ModelProcessor.ProcessModels(demFilePath, osmFilePath, outputStlOsmPath);
+            ModelProcessor.ProcessModels(demFilePath, outputStlPath);
 
             // Assert
             // Verify that the STL file was created
