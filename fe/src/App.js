@@ -4,10 +4,15 @@ import SidebarMenu from "./components/SidebarMenu/SidebarMenu";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import { AuthProvider } from "./contexts/AuthContext";
-import MapWithDraw from './components/MapComponent/MapComponent';
+import MapWithDraw from "./components/MapComponents/MapComponent";
 import Admin from "./components/Admin/Admin";
-import './App.css';
+import "./App.css";
 import Profile from "./components/Profile/Profile";
+import ModelDebugPage from "./pages/ModelDebugPage"; 
+import HomePage from "./pages/HomePage";
+import ResetPasswordForm from "./components/Auth/ResetPasswordForm";
+import ForgotPassword from "./components/Auth/ForgotPassword";
+import LayerPage from "./pages/LayerPage";
 
 function App() {
   return (
@@ -18,13 +23,17 @@ function App() {
             <SidebarMenu />
           </div>
           <div className="main-content">
-            <h1>Map2stl</h1>
             <Routes>
               <Route path="/" element={<MapWithDraw />} />
+              <Route path="/map" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgotpassword" element={<ForgotPassword />} />
+              <Route path="/resetpassword" element={<ResetPasswordForm />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="/profile" element={<Profile />} /> 
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/debug-model" element={<ModelDebugPage />} />
+              <Route path="/layer" element={<LayerPage />} />
             </Routes>
           </div>
         </div>

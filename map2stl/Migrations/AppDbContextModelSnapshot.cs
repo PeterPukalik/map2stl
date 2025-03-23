@@ -2,7 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using map2stl;
+using Oracle.EntityFrameworkCore.Metadata;
+using map2stl.DB;
 
 #nullable disable
 
@@ -14,79 +15,132 @@ namespace map2stl.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            modelBuilder.Entity("map2stl.MapModel", b =>
+            OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("map2stl.DB.MapModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("NUMBER(10)");
 
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<double>("EastLng")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<byte[]>("GLBData")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<double>("NorthLat")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<byte[]>("STLData")
+                        .HasColumnType("BLOB");
+
+                    b.Property<double>("SouthLat")
+                        .HasColumnType("BINARY_DOUBLE");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<double>("WestLng")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<int>("estimateSize")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("format")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)");
+
+                    b.Property<double>("meshReduceFactor")
+                        .HasColumnType("BINARY_DOUBLE");
+
+                    b.Property<double>("zFactor")
+                        .HasColumnType("BINARY_DOUBLE");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Models");
                 });
 
-            modelBuilder.Entity("map2stl.User", b =>
+            modelBuilder.Entity("map2stl.DB.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("NUMBER(10)");
+
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("NVARCHAR2(200)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("NVARCHAR2(500)");
 
                     b.Property<int>("Role")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("NUMBER(10)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("NVARCHAR2(200)");
 
                     b.HasKey("Id");
 
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("map2stl.MapModel", b =>
+            modelBuilder.Entity("map2stl.DB.MapModel", b =>
                 {
-                    b.HasOne("map2stl.User", "Owner")
+                    b.HasOne("map2stl.DB.MapModel", "Parent")
+                        .WithMany("Versions")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("map2stl.DB.User", "Owner")
                         .WithMany("Models")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Owner");
+
+                    b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("map2stl.User", b =>
+            modelBuilder.Entity("map2stl.DB.MapModel", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("map2stl.DB.User", b =>
                 {
                     b.Navigation("Models");
                 });

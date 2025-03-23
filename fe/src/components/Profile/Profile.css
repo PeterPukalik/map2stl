@@ -1,0 +1,148 @@
+/* Profile.css */
+
+/* Overall container: centered card-like layout */
+.profile-container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #2c3e50;
+    color: #ecf0f1;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  /* Header styling */
+  .profile-header {
+    border-bottom: 1px solid #34495e;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .profile-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+  }
+  
+  /* Profile details */
+  .profile-details p {
+    font-size: 1rem;
+    margin: 10px 0;
+  }
+  
+  /* Models section */
+  .profile-models {
+    margin: 20px 0;
+  }
+  
+  .profile-models h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+  }
+  
+  /* Styled table for models */
+  .models-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .models-table th,
+  .models-table td {
+    border: 1px solid #34495e;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .models-table th {
+    background: #34495e;
+    font-weight: bold;
+  }
+  
+  .models-table tbody tr:nth-child(even) {
+    background: #3b4f63;
+  }
+  
+  .models-table tbody tr:hover {
+    background: #4b6073;
+    cursor: pointer;
+  }
+  
+  /* Viewer section */
+  .profile-viewer {
+    margin: 20px 0;
+    padding: 10px;
+    border: 1px solid #34495e;
+    border-radius: 4px;
+    background: #34495e;
+  }
+  
+  /* Reset password form */
+  .reset-form {
+    margin: 20px 0;
+  }
+  
+  .reset-form h3 {
+    margin-bottom: 10px;
+  }
+  
+  .reset-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 1rem;
+  }
+  
+  .reset-form input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #34495e;
+    border-radius: 4px;
+    background: #3b4f63;
+    color: #ecf0f1;
+    box-sizing: border-box;
+  }
+  
+  .reset-form button {
+    background-color: #3498db;
+    color: #ecf0f1;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    width: 100%;
+  }
+  
+  .reset-form button:hover {
+    background-color: #3cb0fd;
+    transform: translateY(-2px);
+  }
+  
+  /* Logout button */
+  .logout-button {
+    background-color: #e74c3c;
+    color: #ecf0f1;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  .logout-button:hover {
+    background-color: #c0392b;
+  }
+  
+  /* Message styling */
+  .message {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 1rem;
+  }
+  

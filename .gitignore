@@ -3,6 +3,18 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+
+# Ignore sensitive config files
+appsettings.json
+
+
+##
+map2stl/models/
+map2stl/appsettings.json
+
+
+
+
 # User-specific files
 *.rsuser
 *.suo
