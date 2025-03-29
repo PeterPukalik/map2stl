@@ -16,6 +16,7 @@
 		<PackageReference Include="HelixToolkit.Wpf" Version="2.26.0" />
 		<PackageReference Include="HelixToolkit.Wpf.SharpDX" Version="2.26.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -48,6 +49,8 @@
 
 	<ItemGroup>
 		<Folder Include="Migrations\" />
+		<Folder Include="models\2025-03-29\6\" />
+		<Folder Include="models\2025-03-29\7\" />
 	</ItemGroup>
 
 </Project>

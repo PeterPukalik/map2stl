@@ -1,4 +1,4 @@
-const BASE_URL = "https://localhost:7188"; 
+export const BASE_URL = "https://localhost:7188"; 
 
 
 // Generic helper function for API requests
@@ -143,4 +143,31 @@ export async function shareModel(modelId) {
   // The server returns a file stream, so parse it as a Blob
   const blob = await response.blob();
   return blob;
+}
+
+
+/**
+ * Creates (or triggers creation of) an STL from a given model,
+ * sending the connectionId and override parameters to the backend.
+ * 
+ * @param {number} modelId 
+ * @param {string} connectionId 
+ * @param {object} requestBody 
+ */
+export async function createStlFromModel(modelId, connectionId, requestBody) {
+  const url = `${BASE_URL}/Model/create-stl-from-model/${modelId}?connectionId=${connectionId}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error creating STL from model: ${response.status} - ${errorText}`);
+  }
+
+  // Return JSON or some status if your endpoint returns data.
+  return await response.json();
 }

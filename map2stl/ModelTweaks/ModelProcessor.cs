@@ -153,6 +153,122 @@ namespace map2stl.ModelTweaks
             ExportToStl(terrainData, outputStlPath);
         }
 
+
+
+        /// <summary>
+        /// Overload: Process models from GLB byte arrays (terrain and optional buildings)
+        /// and return the resulting STL file as a byte array.
+        /// </summary>
+        /// <param name="terrainGlbBytes">Terrain GLB file bytes.</param>
+        /// <param name="buildingGlbBytes">
+        /// Optional building GLB file bytes. Pass null if processing only terrain.
+        /// </param>
+        /// <param name="basePlateHeightFraction">Fraction of terrain height to extrude downward.</param>
+        /// <param name="fillBottom">Whether to fill the bottom face.</param>
+        /// <param name="basePlateOffset">
+        /// A positive number that lowers the top of the baseplate relative to the original terrain’s minimum Y.
+        /// </param>
+        /// <returns>Byte array containing the exported ASCII STL.</returns>
+        public static byte[] ProcessModels(
+            byte[] terrainGlbBytes,
+            byte[] buildingGlbBytes,
+            float basePlateHeightFraction = 0.25f,
+            bool fillBottom = true,
+            float basePlateOffset = 0)
+        {
+            // 1. Load the terrain model from the GLB byte array.
+            using var terrainStream = new MemoryStream(terrainGlbBytes);
+            var terrainModel = ModelRoot.ReadGLB(terrainStream);
+            var terrainMesh = terrainModel.LogicalMeshes[0].Primitives[0];
+            var origTerrainVertices = terrainMesh.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+            var origTerrainIndices = terrainMesh.GetTriangleIndices()
+                                                .SelectMany(t => new[] { t.A, t.B, t.C })
+                                                .ToArray();
+
+            // Create MeshData for terrain.
+            var terrainData = new MeshData();
+            terrainData.Vertices.AddRange(origTerrainVertices);
+            terrainData.Indices.AddRange(origTerrainIndices);
+
+            // 2. Extrude the terrain to create a watertight block.
+            FillUnderTerrain(terrainData, basePlateHeightFraction, fillBottom, basePlateOffset);
+
+            // 3. If building data is provided, load and merge the building geometry.
+            if (buildingGlbBytes != null)
+            {
+                using var buildingStream = new MemoryStream(buildingGlbBytes);
+                var buildingsModel = ModelRoot.ReadGLB(buildingStream);
+                if (buildingsModel.LogicalMeshes.Count > 0)
+                {
+                    var buildingMesh = buildingsModel.LogicalMeshes[0];
+                    // Determine the XZ bounds from the terrain.
+                    float terrainMinX = origTerrainVertices.Min(v => v.X);
+                    float terrainMaxX = origTerrainVertices.Max(v => v.X);
+                    float terrainMinZ = origTerrainVertices.Min(v => v.Z);
+                    float terrainMaxZ = origTerrainVertices.Max(v => v.Z);
+
+                    foreach (var primitive in buildingMesh.Primitives)
+                    {
+                        var buildingVertices = primitive.GetVertexAccessor("POSITION").AsVector3Array().ToArray();
+                        var buildingIndices = primitive.GetTriangleIndices()
+                                                       .SelectMany(t => new[] { t.A, t.B, t.C })
+                                                       .ToArray();
+
+                        // Clip building triangles to terrain bounds.
+                        (Vector3[] clippedVerts, int[] clippedIndices) = ClipBuildingTrianglesSimple(
+                            buildingVertices,
+                            buildingIndices,
+                            terrainMinX, terrainMaxX,
+                            terrainMinZ, terrainMaxZ);
+
+                        if (clippedVerts.Length == 0)
+                            continue;
+
+                        // Adjust building vertices to align with the extruded terrain.
+                        AdjustBuildingVertices(clippedVerts, origTerrainVertices, origTerrainIndices, basePlateOffset);
+
+                        // Merge into the terrain MeshData.
+                        int offset = terrainData.Vertices.Count;
+                        terrainData.Vertices.AddRange(clippedVerts);
+                        foreach (var idx in clippedIndices)
+                        {
+                            terrainData.Indices.Add(idx + offset);
+                        }
+                    }
+                }
+            }
+
+            // 4. Rotate the mesh (to orient it for 3D printing).
+            RotateMesh(terrainData, -MathF.PI / 2, Vector3.UnitX);
+            RotateMesh(terrainData, MathF.PI, Vector3.UnitX);
+
+            // 5. Export the final mesh to an STL in-memory.
+            using var ms = new MemoryStream();
+            using (var writer = new StreamWriter(ms))
+            {
+                writer.WriteLine("solid MergedModel");
+                for (int i = 0; i < terrainData.Indices.Count; i += 3)
+                {
+                    var v1 = terrainData.Vertices[terrainData.Indices[i]];
+                    var v2 = terrainData.Vertices[terrainData.Indices[i + 1]];
+                    var v3 = terrainData.Vertices[terrainData.Indices[i + 2]];
+
+                    var normal = Vector3.Normalize(Vector3.Cross(v2 - v1, v3 - v1));
+                    writer.WriteLine($"facet normal {normal.X} {normal.Y} {normal.Z}");
+                    writer.WriteLine("outer loop");
+                    writer.WriteLine($"vertex {v1.X} {v1.Y} {v1.Z}");
+                    writer.WriteLine($"vertex {v2.X} {v2.Y} {v2.Z}");
+                    writer.WriteLine($"vertex {v3.X} {v3.Y} {v3.Z}");
+                    writer.WriteLine("endloop");
+                    writer.WriteLine("endfacet");
+                }
+                writer.WriteLine("endsolid MergedModel");
+                writer.Flush();
+            }
+            return ms.ToArray();
+        }
+
+
         #region Building -> Terrain Height Adjustment
 
         // Modified to include an extra parameter 'basePlateOffset'
@@ -235,6 +351,11 @@ namespace map2stl.ModelTweaks
         }
 
         #endregion
+
+
+
+
+
 
         #region Clip Building Triangles
 

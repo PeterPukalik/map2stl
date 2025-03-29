@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.21",
+    "@microsoft/signalr": "^8.0.7",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@testing-library/jest-dom": "^6.0.0",

@@ -63,6 +63,10 @@ cd ../../fe
 	Install-Package xunit
 Install-Package xunit.runner.visualstudio
 Install-Package Moq
+npm install @microsoft/signalr
+dotnet add package Microsoft.AspNetCore.SignalR
+npm install @microsoft/signalr
+
 
 ## npm dep
 	jwt-decode

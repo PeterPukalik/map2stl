@@ -1,15 +1,52 @@
-// UserModelList.js
+// UserModelList.jsx
 import React, { useState, useEffect } from "react";
-import { fetchUserModels, downloadModel, shareModel } from "../../services/api";
+import * as signalR from "@microsoft/signalr";
+import { 
+  fetchUserModels, 
+  downloadModel, 
+  shareModel, 
+  createStlFromModel,
+  BASE_URL
+} from "../../services/api";
 import ModelViewerBlob from "../MapComponents/ModelViewBlob";
 
 const UserModelList = () => {
   const [models, setModels] = useState([]);
   const [selectedModelId, setSelectedModelId] = useState(null);
-  const [viewerUrl, setViewerUrl] = useState(null); // URL to view the model (GLB)
-  const [downloadUrl, setDownloadUrl] = useState(null); // URL to download the model (STL)
+  const [viewerUrl, setViewerUrl] = useState(null);
   const [shareLink, setShareLink] = useState("");
   const [error, setError] = useState("");
+  const [progressMessages, setProgressMessages] = useState([]);
+  const [isConverting, setIsConverting] = useState(false);
+  const [connection, setConnection] = useState(null);
+  const [connectionId, setConnectionId] = useState("");
+
+  // Establish SignalR connection on mount.
+  useEffect(() => {
+    console.log("base url is:" +BASE_URL)
+    const newConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`${BASE_URL}/progressHub`, { withCredentials: true })
+      .withAutomaticReconnect()
+      .build();
+
+      newConnection.start()
+      .then(async () => {
+        const cid = await newConnection.invoke("GetConnectionId");
+        setConnectionId(cid);
+        console.log("Connection ID from hub:", cid);
+      })
+      .catch(err => console.error("SignalR connection error:", err));
+
+    newConnection.on("ReceiveProgress", (message) => {
+      setProgressMessages(prev => [...prev, message]);
+    });
+
+    setConnection(newConnection);
+
+    return () => {
+      newConnection.stop();
+    };
+  }, [BASE_URL]);
 
   // Fetch models when component mounts.
   useEffect(() => {
@@ -25,36 +62,77 @@ const UserModelList = () => {
     getModels();
   }, []);
 
-  // Action: View the model (GLB)
-  const handleView = async (modelId) => {
+
+
+   // Action: View the GLTF model.
+ const handleViewGltf = async (modelId) => {
+  try {
+    const blob = await downloadModel(modelId, "glb");
+    const url = URL.createObjectURL(blob);
+    setViewerUrl(url);
+    setSelectedModelId(modelId);
+
+  } catch (err) {
+    console.error(err);
+    setError(`Error viewing GLTF model ${modelId}`);
+  }
+};
+
+// Action: View the STL model.
+const handleViewStl = async (modelId) => {
+  try {
+    const blob = await downloadModel(modelId, "stl");
+    const url = URL.createObjectURL(blob);
+    setViewerUrl(url);
+    setSelectedModelId(modelId);
+  } catch (err) {
+    console.error(err);
+    setError(`Error viewing STL model ${modelId}`);
+  }
+};
+
+  // Action: Generate STL from a model.
+  const handleGenerateStl = async (modelId) => {
+    if (!connectionId) {
+      console.error("SignalR connection ID not available.");
+      return;
+    }
+    setProgressMessages([]);
+    setIsConverting(true);
+  
+    // Create an object with override parameters. Adjust these as needed.
+    const requestBody = {
+      IncludeBuildings: true,
+      ZFactor: 1,
+      MeshReduceFactor: 1,
+      BasePlateHeightFraction: 0.25,
+      BasePlateOffset: 0
+    };
+  
     try {
-      // Call downloadModel with format "glb" to fetch the model as a Blob.
-      const blob = await downloadModel(modelId, "glb");
-      // Create an object URL from the Blob.
-      const url = URL.createObjectURL(blob);
-      setViewerUrl(url);
-      setSelectedModelId(modelId);
+      // Get the token from localStorage (or your preferred storage).
+      const token = localStorage.getItem("token");
+  
+      // Pass the token to createStlFromModel.
+      await createStlFromModel(modelId, connectionId, requestBody, token);
+      console.log("STL generation initiated.");
     } catch (err) {
-      console.error(err);
-      setError(`Error viewing model ${modelId}`);
+      console.error("Error initiating STL conversion:", err);
+      setError("Error initiating STL conversion.");
+      setIsConverting(false);
     }
   };
 
-
-  // Action: Download the model (STL)
+  // Action: Download STL.
   const handleDownload = async (modelId) => {
     try {
-      // Call downloadModel with format "glb" for download.
-      const blob = await downloadModel(modelId, "glb");
-      // Create an object URL from the Blob.
+      const blob = await downloadModel(modelId, "stl"); // ensure backend returns STL for "stl" format
       const url = URL.createObjectURL(blob);
-      // Create a temporary <a> element and set its download attribute.
       const a = document.createElement("a");
       a.href = url;
-      a.download = `model_${modelId}.glb`;
+      a.download = `model_${modelId}.stl`;
       document.body.appendChild(a);
       a.click();
-      // Clean up by removing the anchor and revoking the object URL.
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -62,9 +140,8 @@ const UserModelList = () => {
       setError(`Error downloading model ${modelId}`);
     }
   };
-  
 
-  // Action: Generate a shareable link for the model
+  // Action: Generate a shareable link.
   const handleShare = async (modelId) => {
     try {
       const result = await shareModel(modelId);
@@ -77,7 +154,8 @@ const UserModelList = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: "1rem" }}>
+      <h2>User Models</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
       {models.length > 0 ? (
         <table border="1" cellPadding="5" cellSpacing="0" style={{ width: "100%" }}>
@@ -94,7 +172,11 @@ const UserModelList = () => {
                 <td>{model.name}</td>
                 <td>{model.description}</td>
                 <td>
-                  <button onClick={() => handleView(model.id)}>View</button>
+                  <button onClick={() => handleViewGltf(model.id) }  style={{ marginLeft: "8px" }} >View GLTF</button>
+                  <button onClick={() => handleViewStl(model.id)} style={{ marginLeft: "8px" }} >View STL</button>
+                  <button onClick={() => handleGenerateStl(model.id)} style={{ marginLeft: "8px" }}>
+                    Generate STL
+                  </button>
                   <button onClick={() => handleDownload(model.id)} style={{ marginLeft: "8px" }}>
                     Download STL
                   </button>
@@ -108,6 +190,22 @@ const UserModelList = () => {
         </table>
       ) : (
         <p>No models found.</p>
+      )}
+
+      {/* Display the progress messages if conversion is in progress */}
+      {isConverting && (
+        <div style={{ marginTop: "1rem", padding: "1rem", background: "#fff" }}>
+          <h3>Conversion Progress:</h3>
+          {progressMessages.length === 0 ? (
+            <p>No progress yet...</p>
+          ) : (
+            <ul>
+              {progressMessages.map((msg, idx) => (
+                <li key={idx}>{msg}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* Display the 3D viewer if a model is selected and viewerUrl is set */}

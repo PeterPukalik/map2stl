@@ -5,11 +5,16 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
+using map2stl; // Add SignalR namespace
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Register SignalR services.
+builder.Services.AddSignalR();
 
 //entity framework
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -94,6 +99,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+// Map the ProgressHub at /progressHub
+app.MapHub<ProgressHub>("/progressHub");
+
 
 app.Run();
 
