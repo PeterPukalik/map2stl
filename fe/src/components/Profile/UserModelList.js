@@ -9,6 +9,7 @@ import {
   BASE_URL
 } from "../../services/api";
 import ModelViewerBlob from "../MapComponents/ModelViewBlob";
+import ModelViewerStl from "../MapComponents/ModelViewerStl";
 
 const UserModelList = () => {
   const [models, setModels] = useState([]);
@@ -20,16 +21,17 @@ const UserModelList = () => {
   const [isConverting, setIsConverting] = useState(false);
   const [connection, setConnection] = useState(null);
   const [connectionId, setConnectionId] = useState("");
+  const [viewerFormat, setViewerFormat] = useState("");
 
   // Establish SignalR connection on mount.
   useEffect(() => {
-    console.log("base url is:" +BASE_URL)
+    console.log("base url is:" + BASE_URL);
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(`${BASE_URL}/progressHub`, { withCredentials: true })
       .withAutomaticReconnect()
       .build();
 
-      newConnection.start()
+    newConnection.start()
       .then(async () => {
         const cid = await newConnection.invoke("GetConnectionId");
         setConnectionId(cid);
@@ -62,29 +64,28 @@ const UserModelList = () => {
     getModels();
   }, []);
 
-
-
-   // Action: View the GLTF model.
- const handleViewGltf = async (modelId) => {
+// When viewing GLTF:
+const handleViewGltf = async (modelId) => {
   try {
     const blob = await downloadModel(modelId, "glb");
     const url = URL.createObjectURL(blob);
     setViewerUrl(url);
     setSelectedModelId(modelId);
-
+    setViewerFormat("glb");
   } catch (err) {
     console.error(err);
     setError(`Error viewing GLTF model ${modelId}`);
   }
 };
 
-// Action: View the STL model.
+// When viewing STL:
 const handleViewStl = async (modelId) => {
   try {
     const blob = await downloadModel(modelId, "stl");
     const url = URL.createObjectURL(blob);
     setViewerUrl(url);
     setSelectedModelId(modelId);
+    setViewerFormat("stl");
   } catch (err) {
     console.error(err);
     setError(`Error viewing STL model ${modelId}`);
@@ -99,7 +100,7 @@ const handleViewStl = async (modelId) => {
     }
     setProgressMessages([]);
     setIsConverting(true);
-  
+
     // Create an object with override parameters. Adjust these as needed.
     const requestBody = {
       IncludeBuildings: true,
@@ -108,12 +109,9 @@ const handleViewStl = async (modelId) => {
       BasePlateHeightFraction: 0.25,
       BasePlateOffset: 0
     };
-  
+
     try {
-      // Get the token from localStorage (or your preferred storage).
       const token = localStorage.getItem("token");
-  
-      // Pass the token to createStlFromModel.
       await createStlFromModel(modelId, connectionId, requestBody, token);
       console.log("STL generation initiated.");
     } catch (err) {
@@ -126,7 +124,7 @@ const handleViewStl = async (modelId) => {
   // Action: Download STL.
   const handleDownload = async (modelId) => {
     try {
-      const blob = await downloadModel(modelId, "stl"); // ensure backend returns STL for "stl" format
+      const blob = await downloadModel(modelId, "stl");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -172,8 +170,12 @@ const handleViewStl = async (modelId) => {
                 <td>{model.name}</td>
                 <td>{model.description}</td>
                 <td>
-                  <button onClick={() => handleViewGltf(model.id) }  style={{ marginLeft: "8px" }} >View GLTF</button>
-                  <button onClick={() => handleViewStl(model.id)} style={{ marginLeft: "8px" }} >View STL</button>
+                  <button onClick={() => handleViewGltf(model.id)} style={{ marginLeft: "8px" }}>
+                    View GLTF
+                  </button>
+                  <button onClick={() => handleViewStl(model.id)} style={{ marginLeft: "8px" }}>
+                    View STL
+                  </button>
                   <button onClick={() => handleGenerateStl(model.id)} style={{ marginLeft: "8px" }}>
                     Generate STL
                   </button>
@@ -192,14 +194,24 @@ const handleViewStl = async (modelId) => {
         <p>No models found.</p>
       )}
 
-      {/* Display the progress messages if conversion is in progress */}
+      {/* Display the progress messages with a dark background and white text */}
       {isConverting && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#fff" }}>
-          <h3>Conversion Progress:</h3>
+        <div
+          style={{
+            marginTop: "1rem",
+            padding: "1rem",
+            backgroundColor: "#222",
+            color: "#fff",
+            borderRadius: "5px",
+            maxHeight: "300px",
+            overflowY: "auto"
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Conversion Progress:</h3>
           {progressMessages.length === 0 ? (
             <p>No progress yet...</p>
           ) : (
-            <ul>
+            <ul style={{ margin: 0, paddingLeft: "1rem" }}>
               {progressMessages.map((msg, idx) => (
                 <li key={idx}>{msg}</li>
               ))}
@@ -209,12 +221,20 @@ const handleViewStl = async (modelId) => {
       )}
 
       {/* Display the 3D viewer if a model is selected and viewerUrl is set */}
-      {selectedModelId && viewerUrl && (
-        <div style={{ marginTop: "2rem" }}>
-          <h3>Viewing Model {selectedModelId}</h3>
-          <ModelViewerBlob modelSource={viewerUrl} />
-        </div>
-      )}
+      {selectedModelId && viewerUrl && viewerFormat === "glb" && (
+                  <div style={{ marginTop: "2rem" }}>
+                    <h3>Viewing GLTF Model {selectedModelId}</h3>
+                    <ModelViewerBlob modelSource={viewerUrl} />
+                  </div>
+                )}
+
+                {selectedModelId && viewerUrl && viewerFormat === "stl" && (
+                  <div style={{ marginTop: "2rem" }}>
+                    <h3>Viewing STL Model {selectedModelId}</h3>
+                    <ModelViewerStl modelSource={viewerUrl} />
+                  </div>
+                )}
+
 
       {/* Optionally display the share link */}
       {shareLink && (
